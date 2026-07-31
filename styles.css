@@ -109,7 +109,7 @@ body {
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .month-selector {
@@ -183,6 +183,13 @@ body {
   color: var(--text-muted);
 }
 .btn-ghost:hover { background-color: var(--bg-app); }
+
+.btn-outline {
+  background: #fff;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+}
+.btn-outline:hover { background: var(--bg-app); }
 
 .btn-icon {
   width: 32px;
@@ -322,7 +329,7 @@ body {
 /* Monthly Chart Wrapper */
 .chart-wrapper-monthly {
   padding: 20px 24px;
-  height: 300px;
+  height: 320px;
   position: relative;
 }
 
@@ -358,13 +365,12 @@ body {
   width: 42px;
   height: 42px;
   border-radius: var(--radius-md);
-  background: var(--bg-app);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--text-main);
+  font-size: 0.85rem;
+  color: #ffffff;
   flex-shrink: 0;
 }
 
