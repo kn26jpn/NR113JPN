@@ -2,10 +2,10 @@
 // App State & Configurations
 // ==========================================================================
 const CONFIG = {
+  // ★ デプロイしたGASのウェブアプリURLをここに記述してください ★
   GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
 };
 
-// 固定カラーパレット（カテゴリー毎に一貫した色を付与）
 const COLOR_PALETTE = [
   "#635bff", "#00d4b6", "#ff5b60", "#ffc01e", "#f77238", "#a5a6f6", "#0a2540", "#20c997", "#e83e8c"
 ];
@@ -14,13 +14,12 @@ let state = {
   currentDate: new Date(),
   configData: null,
   transactions: [],
-  budgets: {} // { "食費": 50000, "日用品": 10000 }
+  budgets: {}
 };
 
 let monthlyChartInstance = null;
 let annualChartInstance = null;
 
-// カテゴリーごとの一貫したカラーマップ生成
 function getCategoryColor(category) {
   if (!category) return "#8898aa";
   const categories = state.configData ? state.configData.expenseCategories : [];
@@ -28,7 +27,6 @@ function getCategoryColor(category) {
   if (index !== -1) {
     return COLOR_PALETTE[index % COLOR_PALETTE.length];
   }
-  // ハッシュ計算による色決定
   let hash = 0;
   for (let i = 0; i < category.length; i++) {
     hash = category.charCodeAt(i) + ((hash << 5) - hash);
@@ -43,8 +41,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
   initDefaultDates();
   
-  await loadAppConfig();
-  await loadMonthData();
+  // ★高速化★ 1回のリクエストで設定と今月データを同時一括取得
+  await loadInitialBundle();
 });
 
 // ==========================================================================
@@ -58,32 +56,36 @@ async function fetchAPI(action, payload = {}) {
       body: JSON.stringify({ action, ...payload })
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     const res = await response.json();
-    if (!res.success) {
-      throw new Error(res.error || "API returned failure");
-    }
+    if (!res.success) throw new Error(res.error || "API returned failure");
     return res.data;
   } catch (error) {
-    console.error("API Fetch Error:", error);
-    if (action !== "getConfig") {
-      alert("通信エラーが発生しました。GASのURLを確認してください。");
-    }
+    console.error("API Error:", error);
+    alert("データの同期に失敗しました。GASのデプロイURLおよびネットワーク状況を確認してください。");
     return null;
   }
 }
 
 // ==========================================================================
-// Data Operations & Rendering
+// Data Operations
 // ==========================================================================
-async function loadAppConfig() {
-  const data = await fetchAPI("getConfig");
-  if (data) {
-    state.configData = data;
+async function loadInitialBundle() {
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth() + 1;
+  
+  document.getElementById("month-display").textContent = `${year}年 ${month}月`;
+  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">高速データ読み込み中...</div>';
+
+  const res = await fetchAPI("getInitialBundle", { year, month });
+  if (res) {
+    state.configData = res.config;
+    state.transactions = res.transactions || [];
+    state.budgets = res.budgets || {};
+    
     populateSelectOptions();
+    renderMonthlyView();
+    renderAnnualView();
   }
 }
 
@@ -92,14 +94,16 @@ async function loadMonthData() {
   const month = state.currentDate.getMonth() + 1;
   
   document.getElementById("month-display").textContent = `${year}年 ${month}月`;
-  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データを読み込み中...</div>';
+  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データ更新中...</div>';
 
   const res = await fetchAPI("getData", { year, month });
-  state.transactions = res ? res.transactions : [];
-  state.budgets = res ? res.budgets : {};
-  
-  renderMonthlyView();
-  renderAnnualView();
+  if (res) {
+    state.transactions = res.transactions || [];
+    state.budgets = res.budgets || {};
+    
+    renderMonthlyView();
+    renderAnnualView();
+  }
 }
 
 function renderMonthlyView() {
@@ -164,12 +168,10 @@ function renderMonthlyView() {
   renderMonthlyChart();
 }
 
-// 縦軸：金額、横軸：カテゴリー（縦棒グラフ ＋ 予算目印ライン）
 function renderMonthlyChart() {
   const expenses = state.transactions.filter(t => t.type === "expense");
   const categoryMap = {};
 
-  // 全カテゴリーを初期化
   if (state.configData && state.configData.expenseCategories) {
     state.configData.expenseCategories.forEach(cat => categoryMap[cat] = 0);
   }
@@ -227,7 +229,6 @@ function renderMonthlyChart() {
   });
 }
 
-// 年間縦棒グラフ
 function renderAnnualView() {
   const expenses = state.transactions.filter(t => t.type === "expense");
   const categoryMap = {};
@@ -274,9 +275,7 @@ function renderAnnualView() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } },
         y: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } }, beginAtZero: true }
@@ -341,8 +340,8 @@ function initDefaultDates() {
 function populateSelectOptions() {
   if (!state.configData) return;
 
-  const fillSelect = (selector, list) => {
-    const el = document.querySelector(selector);
+  const fill = (selectId, list) => {
+    const el = document.getElementById(selectId);
     if (!el) return;
     el.innerHTML = '<option value="" disabled selected>選択してください</option>';
     list.forEach(item => {
@@ -353,22 +352,21 @@ function populateSelectOptions() {
     });
   };
 
-  fillSelect('#form-expense select[name="category"]', state.configData.expenseCategories);
-  fillSelect('#form-income select[name="category"]', state.configData.incomeCategories);
-  fillSelect('#form-expense select[name="name"]', state.configData.names);
-  fillSelect('#form-income select[name="name"]', state.configData.names);
-  fillSelect('#edit-category-select', state.configData.expenseCategories);
+  fill("select-expense-category", state.configData.expenseCategories);
+  fill("select-income-category", state.configData.incomeCategories);
+  fill("select-expense-name", state.configData.names);
+  fill("select-income-name", state.configData.names);
+  fill("edit-category-select", state.configData.expenseCategories);
 }
 
-// カテゴリー編集モーダル
 window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
+  populateSelectOptions();
+  
   const form = document.getElementById("form-edit-category");
   form.querySelector('input[name="sheetName"]').value = sheetName;
   form.querySelector('input[name="rowIndex"]').value = rowIndex;
   document.getElementById("edit-content-display").value = content;
   
-  // 選択肢の再構築・選択状態適用
-  populateSelectOptions();
   const select = document.getElementById("edit-category-select");
   select.value = currentCategory;
 
@@ -376,7 +374,6 @@ window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) =
   document.getElementById("modal-edit-category").classList.add("active");
 };
 
-// 予算設定モーダル
 function openBudgetModal() {
   const year = state.currentDate.getFullYear();
   const month = state.currentDate.getMonth() + 1;
