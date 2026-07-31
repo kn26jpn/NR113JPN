@@ -37,9 +37,6 @@
   --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ==========================================================================
-   Reset & Base Styles
-   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -62,14 +59,9 @@ body {
   flex-direction: column;
 }
 
-/* Utility */
-.mb-6 {
-  margin-bottom: 24px;
-}
+.mb-6 { margin-bottom: 24px; }
 
-/* ==========================================================================
-   Header Architecture
-   ========================================================================== */
+/* Header */
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -82,11 +74,7 @@ body {
   z-index: 40;
 }
 
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.header-brand { display: flex; align-items: center; gap: 12px; }
 
 .brand-icon {
   width: 36px;
@@ -99,18 +87,9 @@ body {
   justify-content: center;
 }
 .brand-icon svg { width: 20px; height: 20px; }
+.brand-title { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; }
 
-.brand-title {
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
-}
-
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+.header-controls { display: flex; align-items: center; gap: 16px; }
 
 .month-selector {
   display: flex;
@@ -155,9 +134,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* ==========================================================================
-   Buttons & Controls
-   ========================================================================== */
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -171,24 +148,13 @@ body {
   transition: var(--transition-fast);
 }
 
-.btn-primary {
-  background-color: var(--primary);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
-}
+.btn-primary { background-color: var(--primary); color: #fff; box-shadow: var(--shadow-sm); }
 .btn-primary:hover { background-color: var(--primary-hover); }
 
-.btn-ghost {
-  background-color: transparent;
-  color: var(--text-muted);
-}
+.btn-ghost { background-color: transparent; color: var(--text-muted); }
 .btn-ghost:hover { background-color: var(--bg-app); }
 
-.btn-outline {
-  background: #fff;
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-}
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); }
 .btn-outline:hover { background: var(--bg-app); }
 
 .btn-icon {
@@ -221,24 +187,12 @@ body {
   transition: var(--transition-fast);
   margin-left: 8px;
 }
-.btn-edit-cat:hover {
-  background: var(--primary-light);
-  color: var(--primary);
-}
+.btn-edit-cat:hover { background: var(--primary-light); color: var(--primary); }
 .btn-edit-cat svg { width: 14px; height: 14px; }
 
-/* ==========================================================================
-   Main Content & Views
-   ========================================================================== */
-.app-content {
-  padding: 32px 24px 100px;
-  flex: 1;
-}
-
-.view-section {
-  display: none;
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* Views */
+.app-content { padding: 32px 24px 100px; flex: 1; }
+.view-section { display: none; animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .view-section.active { display: block; }
 
 @keyframes fadeIn {
@@ -246,7 +200,6 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Dashboard Summary Cards */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -262,12 +215,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.card-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+.card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 
 .card-icon {
   width: 28px;
@@ -283,19 +231,9 @@ body {
 .expense .card-icon { background: var(--expense-bg); color: var(--expense-color); }
 .balance .card-icon { background: var(--primary-light); color: var(--primary); }
 
-.card-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
+.card-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+.card-value { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; }
 
-.card-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-
-/* Cards & Lists */
 .content-card {
   background: var(--bg-surface);
   border-radius: var(--radius-md);
@@ -312,32 +250,12 @@ body {
   align-items: center;
 }
 
-.card-heading {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
+.card-heading { font-size: 1.05rem; font-weight: 700; }
+.badge { background: var(--bg-app); color: var(--text-muted); padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
 
-.badge {
-  background: var(--bg-app);
-  color: var(--text-muted);
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
+.chart-wrapper-monthly { padding: 20px 24px; height: 320px; position: relative; }
 
-/* Monthly Chart Wrapper */
-.chart-wrapper-monthly {
-  padding: 20px 24px;
-  height: 320px;
-  position: relative;
-}
-
-/* Transactions Row */
-.transaction-list {
-  display: flex;
-  flex-direction: column;
-}
+.transaction-list { display: flex; flex-direction: column; }
 
 .tx-row {
   display: flex;
@@ -350,16 +268,8 @@ body {
 .tx-row:last-child { border-bottom: none; }
 .tx-row:hover { background-color: #fafbfc; }
 
-.tx-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.tx-right {
-  display: flex;
-  align-items: center;
-}
+.tx-left { display: flex; align-items: center; gap: 16px; }
+.tx-right { display: flex; align-items: center; }
 
 .tx-category-badge {
   width: 42px;
@@ -374,74 +284,22 @@ body {
   flex-shrink: 0;
 }
 
-.tx-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.tx-details { display: flex; flex-direction: column; gap: 2px; }
+.tx-title { font-weight: 600; font-size: 0.95rem; }
+.tx-sub { font-size: 0.8rem; color: var(--text-subtle); display: flex; gap: 8px; }
 
-.tx-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.tx-sub {
-  font-size: 0.8rem;
-  color: var(--text-subtle);
-  display: flex;
-  gap: 8px;
-}
-
-.tx-amount {
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
-}
+.tx-amount { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
 .tx-amount.income { color: var(--income-color); }
 .tx-amount.expense { color: var(--text-main); }
 
-/* ==========================================================================
-   Annual View Layout
-   ========================================================================== */
-.annual-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.chart-wrapper {
-  padding: 24px;
-  height: 380px;
-  position: relative;
-}
-
-.breakdown-list {
-  padding: 12px 24px;
-}
-
-.breakdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-color);
-}
+.annual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.chart-wrapper { padding: 24px; height: 380px; position: relative; }
+.breakdown-list { padding: 12px 24px; }
+.breakdown-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
 .breakdown-item:last-child { border-bottom: none; }
 
-/* ==========================================================================
-   Floating Action Button (FAB)
-   ========================================================================== */
-.fab-wrapper {
-  position: fixed;
-  bottom: 32px;
-  right: 32px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-}
-
+/* FAB */
+.fab-wrapper { position: fixed; bottom: 32px; right: 32px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 .fab-trigger {
   width: 56px;
   height: 56px;
@@ -454,7 +312,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .fab-trigger svg { width: 28px; height: 28px; }
 .fab-trigger:hover { transform: scale(1.05); }
@@ -469,11 +327,7 @@ body {
   transform: translateY(12px) scale(0.95);
   transition: var(--transition-normal);
 }
-.fab-menu.active {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0) scale(1);
-}
+.fab-menu.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
 
 .fab-action {
   display: flex;
@@ -495,9 +349,7 @@ body {
 .fab-action.expense svg { color: var(--expense-color); }
 .fab-action.income svg { color: var(--income-color); }
 
-/* ==========================================================================
-   Modals
-   ========================================================================== */
+/* Modals */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -526,46 +378,15 @@ body {
   z-index: 100;
   overflow: hidden;
 }
-.modal-window.active {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, -50%) scale(1);
-}
+.modal-window.active { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
 
-.modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 .modal-title { font-size: 1.1rem; font-weight: 700; }
+.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 
-.modal-body {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.form-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
 
 .form-input, .form-select {
   width: 100%;
@@ -579,54 +400,23 @@ body {
   outline: none;
   transition: var(--transition-fast);
 }
-.form-input:focus, .form-select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
-}
+.form-input:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15); }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
-}
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
 
-/* ==========================================================================
-   Responsive Breakpoints
-   ========================================================================== */
-
-/* Tablet (iPad) */
-@media (max-width: 834px) {
-  .annual-grid { grid-template-columns: 1fr; }
-}
-
-/* Mobile (Smartphones) */
+/* Responsive */
+@media (max-width: 834px) { .annual-grid { grid-template-columns: 1fr; } }
 @media (max-width: 576px) {
-  .app-header {
-    flex-direction: column;
-    gap: 16px;
-    padding: 16px;
-  }
-  .header-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
+  .app-header { flex-direction: column; gap: 16px; padding: 16px; }
+  .header-controls { width: 100%; justify-content: space-between; }
   .month-label { min-width: 90px; font-size: 0.85rem; }
-  
   .app-content { padding: 16px 16px 90px; }
-  
-  .summary-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
+  .summary-grid { grid-template-columns: 1fr; gap: 12px; }
   .summary-card { padding: 16px; }
   .card-value { font-size: 1.5rem; }
-
   .tx-row { padding: 12px 16px; }
   .tx-category-badge { width: 36px; height: 36px; font-size: 0.8rem; }
   .tx-title { font-size: 0.875rem; }
-
   .fab-wrapper { bottom: 20px; right: 20px; }
-  
   .form-row { grid-template-columns: 1fr; }
 }
