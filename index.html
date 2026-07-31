@@ -76,7 +76,7 @@
           </div>
         </div>
 
-        <!-- 今月のカテゴリー別支出グラフ -->
+        <!-- 今月の支出カテゴリー（棒グラフ） -->
         <div class="content-card chart-card-monthly mb-6">
           <div class="card-header">
             <h2 class="card-heading">今月の支出カテゴリー</h2>
@@ -224,6 +224,32 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
           <button type="submit" class="btn btn-primary">保存する</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div id="modal-edit-category" class="modal-window">
+      <div class="modal-header">
+        <h3 class="modal-title">カテゴリーの変更</h3>
+        <button class="btn-icon" onclick="closeModals()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="form-edit-category" class="modal-body">
+        <input type="hidden" name="sheetName">
+        <input type="hidden" name="rowIndex">
+        <div class="form-group">
+          <label class="form-label">内容</label>
+          <input type="text" id="edit-content-display" class="form-input" readonly style="background: var(--bg-app);">
+        </div>
+        <div class="form-group">
+          <label class="form-label">新しいカテゴリー</label>
+          <select name="newCategory" id="edit-category-select" class="form-select" required></select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="btn btn-primary">更新する</button>
         </div>
       </form>
     </div>
