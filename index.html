@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Kakeibo</title>
+  <title>Smart Kakeibo V2</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -11,38 +15,54 @@
   <div id="app">
     <!-- Header -->
     <header>
-      <button id="prev-month" class="icon-btn">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-      </button>
-      <h1 id="month-display">2026年 7月</h1>
-      <button id="next-month" class="icon-btn">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-      </button>
-      <button id="toggle-view" class="btn-text">年間分析</button>
+      <div class="header-left">
+        <button id="prev-month" class="btn-icon">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <h1 id="month-display">2026年 7月</h1>
+        <button id="next-month" class="btn-icon">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+      </div>
+      <div class="header-right">
+        <button id="toggle-view" class="btn btn-outline">年間分析</button>
+      </div>
     </header>
 
     <!-- Monthly View -->
     <main id="monthly-view" class="view active">
       <div class="summary-cards">
-        <div class="card income">収入: <span id="sum-income">¥0</span></div>
-        <div class="card expense">支出: <span id="sum-expense">¥0</span></div>
-        <div class="card total">収支: <span id="sum-total">¥0</span></div>
+        <div class="card income">
+          <div class="card-label">収入</div>
+          <div class="card-value" id="sum-income">¥0</div>
+        </div>
+        <div class="card expense">
+          <div class="card-label">支出</div>
+          <div class="card-value" id="sum-expense">¥0</div>
+        </div>
+        <div class="card total">
+          <div class="card-label">収支</div>
+          <div class="card-value" id="sum-total">¥0</div>
+        </div>
       </div>
       <div id="transaction-list" class="list-container"></div>
     </main>
 
     <!-- Annual View -->
     <main id="annual-view" class="view">
-      <div class="chart-container">
-        <canvas id="annual-chart"></canvas>
+      <div class="card chart-card">
+        <div class="card-label">今月のカテゴリー別支出</div>
+        <div class="chart-container">
+          <canvas id="annual-chart"></canvas>
+        </div>
       </div>
     </main>
 
     <!-- Floating Action Button -->
     <div class="fab-container">
       <div class="fab-menu" id="fab-menu">
-        <button class="fab-item expense" onclick="openModal('expense')">支出</button>
-        <button class="fab-item income" onclick="openModal('income')">収入</button>
+        <button class="fab-item expense" onclick="openModal('expense')">支出登録</button>
+        <button class="fab-item income" onclick="openModal('income')">収入登録</button>
       </div>
       <button class="fab" id="fab-main">
         <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -54,39 +74,82 @@
     
     <!-- Expense Modal -->
     <div id="expense-modal" class="modal">
-      <h2>支出の登録</h2>
+      <div class="modal-header">
+        <h2>支出の登録</h2>
+        <button class="btn-icon close-modal" onclick="closeModals()">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
       <form id="expense-form">
-        <input type="date" name="date" required>
-        <select name="category" required><option value="" disabled selected>カテゴリー</option></select>
-        <input type="text" name="content" placeholder="内容" required>
-        <select name="payment" required>
-          <option value="" disabled selected>支払方法</option>
-          <option value="現金">現金</option>
-          <option value="カード">カード</option>
-          <option value="ポイント">ポイント</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="number" name="amount" placeholder="金額 (¥)" required>
-        <select name="name"><option value="">家計（指定なし）</option></select>
+        <div class="form-group">
+          <label>日付</label>
+          <input type="date" name="date" required>
+        </div>
+        <div class="form-group">
+          <label>カテゴリー</label>
+          <select name="category" required><option value="" disabled selected>選択してください</option></select>
+        </div>
+        <div class="form-group">
+          <label>内容</label>
+          <input type="text" name="content" placeholder="例: 食料品買い出し" required>
+        </div>
+        <div class="form-group">
+          <label>支払方法</label>
+          <select name="payment" required>
+            <option value="" disabled selected>選択してください</option>
+            <option value="現金">現金</option>
+            <option value="カード">カード</option>
+            <option value="ポイント">ポイント</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>金額 (¥)</label>
+          <input type="number" name="amount" placeholder="例: 1500" required>
+        </div>
+        <div class="form-group">
+          <label>名前 (空白=家計)</label>
+          <select name="name"><option value="">家計（指定なし）</option></select>
+        </div>
         <div class="modal-actions">
-          <button type="button" class="cancel-btn" onclick="closeModals()">キャンセル</button>
-          <button type="submit" class="submit-btn">登録</button>
+          <button type="button" class="btn btn-secondary cancel-btn" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="btn btn-primary submit-btn">登録する</button>
         </div>
       </form>
     </div>
 
     <!-- Income Modal -->
     <div id="income-modal" class="modal">
-      <h2>収入の登録</h2>
+      <div class="modal-header">
+        <h2>収入の登録</h2>
+        <button class="btn-icon close-modal" onclick="closeModals()">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
       <form id="income-form">
-        <input type="date" name="date" required>
-        <select name="category" required><option value="" disabled selected>カテゴリー</option></select>
-        <input type="text" name="note" placeholder="備考" required>
-        <input type="number" name="amount" placeholder="金額 (¥)" required>
-        <select name="name"><option value="">家計（指定なし）</option></select>
+        <div class="form-group">
+          <label>日付</label>
+          <input type="date" name="date" required>
+        </div>
+        <div class="form-group">
+          <label>カテゴリー</label>
+          <select name="category" required><option value="" disabled selected>選択してください</option></select>
+        </div>
+        <div class="form-group">
+          <label>備考</label>
+          <input type="text" name="note" placeholder="例: 給与、フリマ売上">
+        </div>
+        <div class="form-group">
+          <label>金額 (¥)</label>
+          <input type="number" name="amount" placeholder="例: 250000" required>
+        </div>
+        <div class="form-group">
+          <label>名前 (空白=家計)</label>
+          <select name="name"><option value="">家計（指定なし）</option></select>
+        </div>
         <div class="modal-actions">
-          <button type="button" class="cancel-btn" onclick="closeModals()">キャンセル</button>
-          <button type="submit" class="submit-btn">登録</button>
+          <button type="button" class="btn btn-secondary cancel-btn" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="btn btn-primary submit-btn">登録する</button>
         </div>
       </form>
     </div>
