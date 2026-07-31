@@ -2,6 +2,7 @@
 // App State & Configurations
 // ==========================================================================
 const CONFIG = {
+  // ★ デプロイしたGASのウェブアプリURLをここに記述してください ★
   GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
 };
 
@@ -144,7 +145,7 @@ function renderMonthlyView() {
           </div>
         </div>
         <div class="tx-right">
-          <!-- ★修正★ 支出も含め純粋な正の数値表示（マイナス表示完全排除） -->
+          <!-- 支出も含めて完全にプラスの金額（¥X,XXX）で表示 -->
           <div class="tx-amount ${tx.type}">
             ¥${amount.toLocaleString()}
           </div>
@@ -179,10 +180,17 @@ function renderMonthlyChart() {
     categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
   });
 
-  const labels = Object.keys(categoryMap);
-  const actualValues = labels.map(cat => categoryMap[cat]);
-  const budgetValues = labels.map(cat => state.budgets[cat] || 0);
-  const backgroundColors = labels.map(cat => getCategoryColor(cat));
+  // ★修正①★ 支出額も予算額も両方0円のカテゴリーを除外するフィルタリング
+  const allLabels = Object.keys(categoryMap);
+  const activeLabels = allLabels.filter(cat => {
+    const actual = categoryMap[cat] || 0;
+    const budget = state.budgets[cat] || 0;
+    return actual > 0 || budget > 0;
+  });
+
+  const actualValues = activeLabels.map(cat => categoryMap[cat]);
+  const budgetValues = activeLabels.map(cat => state.budgets[cat] || 0);
+  const backgroundColors = activeLabels.map(cat => getCategoryColor(cat));
 
   const ctx = document.getElementById("monthly-category-chart");
   if (monthlyChartInstance) monthlyChartInstance.destroy();
@@ -190,7 +198,7 @@ function renderMonthlyChart() {
   monthlyChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: labels,
+      labels: activeLabels,
       datasets: [
         {
           label: "支出額 (円)",
@@ -236,8 +244,8 @@ function renderAnnualView() {
     categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
   });
 
-  const labels = Object.keys(categoryMap);
-  const values = Object.values(categoryMap);
+  const labels = Object.keys(categoryMap).filter(cat => categoryMap[cat] > 0);
+  const values = labels.map(cat => categoryMap[cat]);
   const backgroundColors = labels.map(cat => getCategoryColor(cat));
 
   const breakdownContainer = document.getElementById("category-breakdown");
@@ -359,7 +367,6 @@ function populateSelectOptions() {
   fill("edit-category-select", state.configData.expenseCategories);
 }
 
-// ★修正★ カテゴリー変更モーダルを開く処理の改善
 window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
   populateSelectOptions();
   
@@ -377,7 +384,6 @@ window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) =
   document.getElementById("modal-edit-category").classList.add("active");
 };
 
-// ★修正★ 予算設定モーダル（step="5000" で5000円刻み調整可能）
 function openBudgetModal() {
   const year = state.currentDate.getFullYear();
   const month = state.currentDate.getMonth() + 1;
@@ -397,7 +403,6 @@ function openBudgetModal() {
       group.className = "form-group";
       group.innerHTML = `
         <label class="form-label">${escapeHTML(cat)} の予算 (円)</label>
-        <!-- step="5000" で5,000円刻みの調整を可能に設定 -->
         <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0" step="5000">
       `;
       container.appendChild(group);
