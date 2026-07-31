@@ -200,6 +200,26 @@ body {
 .btn-icon:hover { background: var(--bg-app); color: var(--text-main); }
 .btn-icon svg { width: 18px; height: 18px; }
 
+.btn-edit-cat {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--bg-app);
+  color: var(--text-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  margin-left: 8px;
+}
+.btn-edit-cat:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.btn-edit-cat svg { width: 14px; height: 14px; }
+
 /* ==========================================================================
    Main Content & Views
    ========================================================================== */
@@ -302,11 +322,8 @@ body {
 /* Monthly Chart Wrapper */
 .chart-wrapper-monthly {
   padding: 20px 24px;
-  height: 260px;
+  height: 300px;
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 /* Transactions Row */
@@ -330,6 +347,11 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.tx-right {
+  display: flex;
+  align-items: center;
 }
 
 .tx-category-badge {
@@ -383,7 +405,7 @@ body {
 
 .chart-wrapper {
   padding: 24px;
-  height: 320px;
+  height: 380px;
   position: relative;
 }
 
