@@ -3,7 +3,7 @@
 // ==========================================
 // ※ デプロイしたGASのWebアプリURLに書き換えてください
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"; 
-const ACCESS_TOKEN = "MY_SECRET_HOUSEHOLD_KEY_2026";
+const ACCESS_TOKEN = "thevillageiii";
 
 // 状態管理
 let currentDate = new Date();
