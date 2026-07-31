@@ -1,7 +1,6 @@
 // GASデプロイ後のURLを貼り付けてください
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec";
 
-// グローバル状態管理
 let appState = {
   currentDate: new Date(),
   viewMode: "month", // 'month' or 'year'
@@ -18,7 +17,6 @@ let appState = {
 let expenseChartInstance = null;
 let yearChartInstance = null;
 
-// カテゴリー別パレット生成
 const COLOR_PALETTE = [
   "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
   "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"
@@ -32,23 +30,30 @@ document.addEventListener("DOMContentLoaded", () => {
 // JSONPを利用したデータ取得（CORS完全回避）
 function fetchInitialData() {
   const callbackName = "gasCallback_" + Date.now();
+  
   window[callbackName] = function(response) {
     if (response.status === "success") {
       appState.rawData = response.data;
+      console.log("取得データ:", response.data); // デバッグ用ログ
       renderApp();
     } else {
       alert("データ取得エラー: " + response.message);
     }
     delete window[callbackName];
-    document.body.removeChild(script);
+    if (script && script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
   };
 
   const script = document.createElement("script");
   script.src = `${GAS_URL}?action=getInitialData&callback=${callbackName}`;
+  script.onerror = function() {
+    alert("GASとの通信に失敗しました。URLとデプロイ設定を確認してください。");
+  };
   document.body.appendChild(script);
 }
 
-// データ保存 POST リクエスト (redirect: "follow" 必須)
+// POST リクエスト (redirect: "follow" 明記)
 async function sendPostData(payload) {
   try {
     const response = await fetch(GAS_URL, {
@@ -59,7 +64,7 @@ async function sendPostData(payload) {
     });
     const result = await response.json();
     if (result.status === "success") {
-      fetchInitialData(); // 最新データ再読み込み
+      fetchInitialData();
     } else {
       alert("保存エラー: " + result.message);
     }
@@ -69,20 +74,17 @@ async function sendPostData(payload) {
 }
 
 function initEventListeners() {
-  // ナビゲーション
   document.getElementById("btn-prev").addEventListener("click", () => changePeriod(-1));
   document.getElementById("btn-next").addEventListener("click", () => changePeriod(1));
   document.getElementById("btn-view-month").addEventListener("click", () => setViewMode("month"));
   document.getElementById("btn-view-year").addEventListener("click", () => setViewMode("year"));
 
-  // FAB モーダル
   const fabWrapper = document.getElementById("fab-wrapper");
   document.getElementById("fab-main").addEventListener("click", () => fabWrapper.classList.toggle("active"));
   document.getElementById("btn-open-expense").addEventListener("click", () => openTransactionModal("expense"));
   document.getElementById("btn-open-income").addEventListener("click", () => openTransactionModal("income"));
   document.getElementById("btn-close-modal").addEventListener("click", closeTransactionModal);
 
-  // フォーム送信
   document.getElementById("transaction-form").addEventListener("submit", handleTransactionSubmit);
   document.getElementById("btn-open-budget").addEventListener("click", openBudgetModal);
   document.getElementById("btn-close-budget-modal").addEventListener("click", () => document.getElementById("budget-modal").classList.add("hidden"));
@@ -122,8 +124,10 @@ function renderApp() {
 
 function renderMonthView(year, month) {
   const prefix = `${year}-${month}`;
-  const monthlyExpenses = appState.rawData.expenses.filter(e => e.date.startsWith(prefix));
-  const monthlyIncomes = appState.rawData.incomes.filter(i => i.date.startsWith(prefix));
+  
+  // AMEXと現金等の合算支出フィルタリング
+  const monthlyExpenses = appState.rawData.expenses.filter(e => e.date && e.date.startsWith(prefix));
+  const monthlyIncomes = appState.rawData.incomes.filter(i => i.date && i.date.startsWith(prefix));
 
   const totalExp = monthlyExpenses.reduce((sum, item) => sum + item.amount, 0);
   const totalInc = monthlyIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -185,16 +189,16 @@ function renderYearView(year) {
   const monthlyExpenses = Array(12).fill(0);
 
   appState.rawData.incomes.forEach(i => {
-    if (i.date.startsWith(year)) {
+    if (i.date && i.date.startsWith(String(year))) {
       const m = parseInt(i.date.split("-")[1], 10) - 1;
-      monthlyIncomes[m] += i.amount;
+      if (m >= 0 && m < 12) monthlyIncomes[m] += i.amount;
     }
   });
 
   appState.rawData.expenses.forEach(e => {
-    if (e.date.startsWith(year)) {
+    if (e.date && e.date.startsWith(String(year))) {
       const m = parseInt(e.date.split("-")[1], 10) - 1;
-      monthlyExpenses[m] += e.amount;
+      if (m >= 0 && m < 12) monthlyExpenses[m] += e.amount;
     }
   });
 
@@ -218,17 +222,14 @@ function renderYearView(year) {
   });
 }
 
-// フォーム・モーダル関連
 function openTransactionModal(type) {
   document.getElementById("fab-wrapper").classList.remove("active");
   document.getElementById("form-type").value = type;
   document.getElementById("modal-title").innerText = type === "expense" ? "支出の登録" : "収入の登録";
   document.getElementById("group-payment-method").style.display = type === "expense" ? "flex" : "none";
 
-  // 日付デフォルト（今日）
   document.getElementById("form-date").value = new Date().toISOString().split("T")[0];
 
-  // カテゴリー・名簿のドロップダウン設定
   const catSelect = document.getElementById("form-category");
   catSelect.innerHTML = "";
   const categories = type === "expense" ? appState.rawData.expCategories : appState.rawData.incCategories;
@@ -280,7 +281,6 @@ function openBudgetModal() {
     container.appendChild(div);
   });
 
-  // リアルタイム合計計算イベント
   container.querySelectorAll(".budget-input-item").forEach(input => {
     input.addEventListener("input", calcTotalBudgetPreview);
   });
