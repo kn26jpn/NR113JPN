@@ -1,14 +1,11 @@
 :root {
-  --primary-color: #4f46e5;
-  --primary-hover: #4338ca;
-  --expense-color: #ef4444;
-  --income-color: #10b981;
+  --primary-color: #2563eb;
   --bg-color: #f8fafc;
   --card-bg: #ffffff;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
+  --text-color: #1e293b;
+  --expense-color: #ef4444;
+  --income-color: #10b981;
   --border-color: #e2e8f0;
-  --radius: 12px;
 }
 
 * {
@@ -20,74 +17,51 @@
 
 body {
   background-color: var(--bg-color);
-  color: var(--text-main);
+  color: var(--text-color);
   padding-bottom: 80px;
 }
 
-.icon {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-  vertical-align: middle;
-}
-
-/* ナビゲーションバー */
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--card-bg);
-  padding: 0.75rem 1.5rem;
+.app-header {
+  background-color: var(--card-bg);
   border-bottom: 1px solid var(--border-color);
+  padding: 1rem;
+  text-align: center;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 10;
 }
 
-.logo {
-  font-size: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--primary-color);
+.app-header h1 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
 }
 
 .nav-tabs {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 
-.tab-btn {
-  border: none;
+.nav-tabs button {
   background: none;
+  border: none;
   padding: 0.5rem 1rem;
   font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: bold;
+  color: #64748b;
   cursor: pointer;
-  border-radius: 8px;
+  border-bottom: 2px solid transparent;
 }
 
-.tab-btn.active {
-  background: #eeef2e1;
+.nav-tabs button.active {
   color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
 }
 
-.icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-}
-
-/* レイアウト */
 .container {
-  max-width: 1000px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
 .view-section {
@@ -98,134 +72,83 @@ body {
   display: block;
 }
 
-/* 月・年 選択バー */
-.month-picker-bar {
+.month-selector, .year-selector {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.btn-circle {
+  margin-bottom: 1rem;
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
 }
 
-/* サマリーカード */
+.month-selector button, .year-selector button {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .card {
   background: var(--card-bg);
-  padding: 1.25rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
+  padding: 0.75rem;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
 }
 
-.card .label {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
+.card .label { font-size: 0.75rem; color: #64748b; }
+.card .val { font-size: 1.1rem; font-weight: bold; margin-top: 0.2rem; }
+.card.income .val { color: var(--income-color); }
+.card.expense .val { color: var(--expense-color); }
 
-.card .amount {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.card.income .amount { color: var(--income-color); }
-.card.expense .amount { color: var(--expense-color); }
-
-/* テーブル */
-.table-container {
+.table-wrapper {
   background: var(--card-bg);
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
+  border-radius: 8px;
   overflow-x: auto;
+  border: 1px solid var(--border-color);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
-  font-size: 0.9rem;
-}
-
-.data-table th, .data-table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
 }
 
-.data-table th {
-  background: #f1f5f9;
-  color: var(--text-muted);
-  font-weight: 600;
+.data-table th, .data-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.85rem;
 }
 
-.text-right { text-align: right; }
-.text-center { text-align: center; }
+.data-table th { background: #f1f5f9; }
 
-.badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.badge-expense { background: #fee2e2; color: var(--expense-color); }
-.badge-income { background: #d1fae5; color: var(--income-color); }
-
-/* グラフ表示 */
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.chart-card {
+.chart-container {
   background: var(--card-bg);
-  padding: 1.25rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-}
-
-.chart-card h3 {
-  font-size: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
   margin-bottom: 1rem;
-  color: var(--text-muted);
 }
 
-.chart-wrapper {
-  position: relative;
-  height: 260px;
-}
-
-/* Floating Action Button (FAB) */
+/* FAB Design */
 .fab-container {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  bottom: 20px;
+  right: 20px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.75rem;
-  z-index: 90;
+  z-index: 100;
 }
 
 .fab-main {
@@ -235,7 +158,7 @@ body {
   background: var(--primary-color);
   color: white;
   border: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -244,112 +167,91 @@ body {
 }
 
 .fab-main svg { width: 28px; height: 28px; }
-.fab-container.active .fab-main { transform: rotate(45deg); }
 
 .fab-options {
   display: none;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.fab-container.active .fab-options { display: flex; }
+.fab-options.open { display: flex; }
 
 .fab-child {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  border-radius: 20px;
-  border: none;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: bold;
 }
 
-.fab-child.expense { background: var(--expense-color); }
-.fab-child.income { background: var(--income-color); }
+.fab-child svg { width: 18px; height: 18px; }
+.fab-child.expense { color: var(--expense-color); }
+.fab-child.income { color: var(--income-color); }
 
-/* モーダル */
-.modal {
+/* Modal Design */
+.modal-overlay {
   display: none;
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   z-index: 200;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
 }
 
-.modal.active { display: flex; }
+.modal-overlay.open { display: flex; }
 
 .modal-content {
   background: var(--card-bg);
-  width: 100%;
-  max-width: 450px;
-  border-radius: var(--radius);
   padding: 1.5rem;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--text-muted);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
 }
 
 .form-group {
   margin-bottom: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
 }
 
 .form-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+  color: #64748b;
 }
 
 .form-group input, .form-group select {
-  padding: 0.65rem;
+  padding: 0.6rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  font-size: 0.95rem;
-  outline: none;
+  font-size: 1rem;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-top: 1.5rem;
 }
 
-.btn-primary, .btn-secondary {
-  padding: 0.65rem 1.25rem;
+.modal-actions button {
+  padding: 0.6rem 1.2rem;
   border-radius: 6px;
   border: none;
-  font-weight: 600;
   cursor: pointer;
 }
 
-.btn-primary { background: var(--primary-color); color: white; }
-.btn-secondary { background: #e2e8f0; color: var(--text-main); }
+.btn-cancel { background: #e2e8f0; color: #475569; }
+.btn-submit { background: var(--primary-color); color: white; }
 
-/* レスポンシブ対応 (スマホ表示) */
-@media (max-width: 600px) {
-  .navbar { padding: 0.75rem 1rem; }
-  .data-table th, .data-table td { padding: 0.65rem 0.5rem; font-size: 0.8rem; }
-  .fab-container { bottom: 1.5rem; right: 1.5rem; }
+@media (max-width: 480px) {
+  .summary-cards { grid-template-columns: 1fr; }
 }
