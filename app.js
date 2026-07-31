@@ -12,7 +12,7 @@ const COLOR_PALETTE = [
 
 let state = {
   currentDate: new Date(),
-  configData: null,
+  configData: { expenseCategories: [], incomeCategories: [], names: [] },
   transactions: [],
   budgets: {}
 };
@@ -22,7 +22,7 @@ let annualChartInstance = null;
 
 function getCategoryColor(category) {
   if (!category) return "#8898aa";
-  const categories = state.configData ? state.configData.expenseCategories : [];
+  const categories = state.configData.expenseCategories || [];
   const index = categories.indexOf(category);
   if (index !== -1) {
     return COLOR_PALETTE[index % COLOR_PALETTE.length];
@@ -40,8 +40,6 @@ function getCategoryColor(category) {
 document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
   initDefaultDates();
-  
-  // ★高速化★ 1回のリクエストで設定と今月データを同時一括取得
   await loadInitialBundle();
 });
 
@@ -75,11 +73,11 @@ async function loadInitialBundle() {
   const month = state.currentDate.getMonth() + 1;
   
   document.getElementById("month-display").textContent = `${year}年 ${month}月`;
-  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">高速データ読み込み中...</div>';
+  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データを読み込み中...</div>';
 
   const res = await fetchAPI("getInitialBundle", { year, month });
   if (res) {
-    state.configData = res.config;
+    state.configData = res.config || { expenseCategories: [], incomeCategories: [], names: [] };
     state.transactions = res.transactions || [];
     state.budgets = res.budgets || {};
     
@@ -94,7 +92,7 @@ async function loadMonthData() {
   const month = state.currentDate.getMonth() + 1;
   
   document.getElementById("month-display").textContent = `${year}年 ${month}月`;
-  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データ更新中...</div>';
+  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データを読み込み中...</div>';
 
   const res = await fetchAPI("getData", { year, month });
   if (res) {
@@ -147,8 +145,9 @@ function renderMonthlyView() {
           </div>
         </div>
         <div class="tx-right">
+          <!-- ★修正★ マイナス表記を取り払い、常にプラスの数値表示 -->
           <div class="tx-amount ${tx.type}">
-            ${tx.type === "income" ? "+" : "-"}¥${amount.toLocaleString()}
+            ¥${amount.toLocaleString()}
           </div>
           ${editBtnHtml}
         </div>
@@ -337,6 +336,7 @@ function initDefaultDates() {
   document.querySelectorAll('input[type="date"]').forEach(input => input.value = today);
 }
 
+// ★修正★ ドロップダウン選択肢の挿入ロジックを確実に構築
 function populateSelectOptions() {
   if (!state.configData) return;
 
@@ -344,12 +344,14 @@ function populateSelectOptions() {
     const el = document.getElementById(selectId);
     if (!el) return;
     el.innerHTML = '<option value="" disabled selected>選択してください</option>';
-    list.forEach(item => {
-      const opt = document.createElement("option");
-      opt.value = item;
-      opt.textContent = item;
-      el.appendChild(opt);
-    });
+    if (Array.isArray(list)) {
+      list.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item;
+        opt.textContent = item;
+        el.appendChild(opt);
+      });
+    }
   };
 
   fill("select-expense-category", state.configData.expenseCategories);
@@ -359,6 +361,7 @@ function populateSelectOptions() {
   fill("edit-category-select", state.configData.expenseCategories);
 }
 
+// ★修正★ カテゴリー変更モーダルを正しく開く
 window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
   populateSelectOptions();
   
@@ -368,12 +371,15 @@ window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) =
   document.getElementById("edit-content-display").value = content;
   
   const select = document.getElementById("edit-category-select");
-  select.value = currentCategory;
+  if (select) {
+    select.value = currentCategory;
+  }
 
   document.getElementById("modal-backdrop").classList.add("active");
   document.getElementById("modal-edit-category").classList.add("active");
 };
 
+// ★修正★ 予算設定モーダルを確実に描画
 function openBudgetModal() {
   const year = state.currentDate.getFullYear();
   const month = state.currentDate.getMonth() + 1;
@@ -382,17 +388,22 @@ function openBudgetModal() {
   const container = document.getElementById("budget-input-list");
   container.innerHTML = "";
 
-  const categories = state.configData ? state.configData.expenseCategories : [];
-  categories.forEach(cat => {
-    const val = state.budgets[cat] || "";
-    const group = document.createElement("div");
-    group.className = "form-group";
-    group.innerHTML = `
-      <label class="form-label">${escapeHTML(cat)} の予算 (円)</label>
-      <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0">
-    `;
-    container.appendChild(group);
-  });
+  const categories = (state.configData && state.configData.expenseCategories) ? state.configData.expenseCategories : [];
+  
+  if (categories.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: var(--text-subtle); padding: 16px;">カテゴリーを読み込み中または未登録です</div>';
+  } else {
+    categories.forEach(cat => {
+      const val = state.budgets[cat] !== undefined ? state.budgets[cat] : "";
+      const group = document.createElement("div");
+      group.className = "form-group";
+      group.innerHTML = `
+        <label class="form-label">${escapeHTML(cat)} の予算 (円)</label>
+        <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0">
+      `;
+      container.appendChild(group);
+    });
+  }
 
   document.getElementById("modal-backdrop").classList.add("active");
   document.getElementById("modal-budget").classList.add("active");
