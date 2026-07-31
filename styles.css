@@ -62,6 +62,11 @@ body {
   flex-direction: column;
 }
 
+/* Utility */
+.mb-6 {
+  margin-bottom: 24px;
+}
+
 /* ==========================================================================
    Header Architecture
    ========================================================================== */
@@ -292,6 +297,16 @@ body {
   border-radius: var(--radius-full);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+/* Monthly Chart Wrapper */
+.chart-wrapper-monthly {
+  padding: 20px 24px;
+  height: 260px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Transactions Row */
