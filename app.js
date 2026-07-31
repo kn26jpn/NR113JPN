@@ -1,5 +1,5 @@
 // 設定: GASのWebアプリURLを入力してください
-const GAS_API_URL = "YOUR_GAS_WEB_APP_URL_HERE";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec";
 
 let currentYM = new Date().toISOString().slice(0, 7); // YYYY-MM
 let globalCategories = {};
