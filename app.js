@@ -2,7 +2,6 @@
 // App State & Configurations
 // ==========================================================================
 const CONFIG = {
-  // デプロイしたGASのウェブアプリURLを設定してください
   GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
 };
 
@@ -102,6 +101,13 @@ function renderMonthlyView() {
 
       const row = document.createElement("div");
       row.className = "tx-row";
+      
+      const editBtnHtml = (tx.sheetName && tx.rowIndex) ? `
+        <button class="btn-edit-cat" onclick="openEditCategoryModal('${tx.sheetName}', ${tx.rowIndex}, '${escapeHTML(tx.content || tx.category)}', '${escapeHTML(tx.category)}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+      ` : "";
+
       row.innerHTML = `
         <div class="tx-left">
           <div class="tx-category-badge">${tx.category ? tx.category.slice(0, 2) : "他"}</div>
@@ -110,15 +116,17 @@ function renderMonthlyView() {
             <span class="tx-sub">${dateFormatted} ${tx.payment ? `• ${tx.payment}` : ''} ${tx.name ? `• ${tx.name}` : ''}</span>
           </div>
         </div>
-        <div class="tx-amount ${tx.type}">
-          ${tx.type === "income" ? "+" : "-"}¥${amount.toLocaleString()}
+        <div class="tx-right">
+          <div class="tx-amount ${tx.type}">
+            ${tx.type === "income" ? "+" : "-"}¥${amount.toLocaleString()}
+          </div>
+          ${editBtnHtml}
         </div>
       `;
       listContainer.appendChild(row);
     });
   }
 
-  // サマリーカード更新
   document.getElementById("sum-income").textContent = `¥${incomeTotal.toLocaleString()}`;
   document.getElementById("sum-expense").textContent = `¥${expenseTotal.toLocaleString()}`;
   
@@ -127,10 +135,10 @@ function renderMonthlyView() {
   balanceEl.textContent = `¥${balance.toLocaleString()}`;
   balanceEl.style.color = balance < 0 ? "var(--expense-color)" : "var(--text-main)";
 
-  // 今月のカテゴリー別グラフ描画
   renderMonthlyChart();
 }
 
+// 横棒グラフ化
 function renderMonthlyChart() {
   const expenses = state.transactions.filter(t => t.type === "expense");
   const categoryMap = {};
@@ -140,8 +148,10 @@ function renderMonthlyChart() {
     categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
   });
 
-  const labels = Object.keys(categoryMap);
-  const values = Object.values(categoryMap);
+  // 金額が高い順にソート
+  const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
+  const labels = sortedCategories.map(item => item[0]);
+  const values = sortedCategories.map(item => item[1]);
 
   const ctx = document.getElementById("monthly-category-chart");
   if (monthlyChartInstance) monthlyChartInstance.destroy();
@@ -153,29 +163,32 @@ function renderMonthlyChart() {
   ctx.style.display = "block";
 
   monthlyChartInstance = new Chart(ctx, {
-    type: "doughnut",
+    type: "bar",
     data: {
       labels: labels,
       datasets: [{
+        label: "支出額 (円)",
         data: values,
-        backgroundColor: [
-          "#635bff", "#00d4b6", "#ff5b60", "#ffc01e", "#f77238", "#a5a6f6", "#111827"
-        ],
-        borderWidth: 2,
-        borderColor: "#ffffff"
+        backgroundColor: "#635bff",
+        borderRadius: 6
       }]
     },
     options: {
+      indexAxis: 'y', // 横棒グラフ
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: "right", labels: { usePointStyle: true, boxWidth: 8, font: { size: 12 } } }
+        legend: { display: false }
       },
-      cutout: "65%"
+      scales: {
+        x: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } }
+      }
     }
   });
 }
 
+// 横棒グラフ化
 function renderAnnualView() {
   const expenses = state.transactions.filter(t => t.type === "expense");
   const categoryMap = {};
@@ -185,10 +198,10 @@ function renderAnnualView() {
     categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
   });
 
-  const labels = Object.keys(categoryMap);
-  const values = Object.values(categoryMap);
+  const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
+  const labels = sortedCategories.map(item => item[0]);
+  const values = sortedCategories.map(item => item[1]);
 
-  // 内訳リスト
   const breakdownContainer = document.getElementById("category-breakdown");
   breakdownContainer.innerHTML = "";
   
@@ -202,32 +215,33 @@ function renderAnnualView() {
     breakdownContainer.appendChild(item);
   });
 
-  // 年間グラフ描画
   const ctx = document.getElementById("category-chart");
   if (annualChartInstance) annualChartInstance.destroy();
 
   if (labels.length === 0) return;
 
   annualChartInstance = new Chart(ctx, {
-    type: "doughnut",
+    type: "bar",
     data: {
       labels: labels,
       datasets: [{
+        label: "支出額 (円)",
         data: values,
-        backgroundColor: [
-          "#635bff", "#00d4b6", "#ff5b60", "#ffc01e", "#f77238", "#a5a6f6", "#111827"
-        ],
-        borderWidth: 2,
-        borderColor: "#ffffff"
+        backgroundColor: "#635bff",
+        borderRadius: 6
       }]
     },
     options: {
+      indexAxis: 'y', // 横棒グラフ
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom", labels: { usePointStyle: true, padding: 16 } }
+        legend: { display: false }
       },
-      cutout: "70%"
+      scales: {
+        x: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } }
+      }
     }
   });
 }
@@ -269,6 +283,7 @@ function setupEventListeners() {
 
   document.getElementById("form-expense").onsubmit = (e) => handleFormSubmit(e, "addExpense");
   document.getElementById("form-income").onsubmit = (e) => handleFormSubmit(e, "addIncome");
+  document.getElementById("form-edit-category").onsubmit = (e) => handleFormSubmit(e, "updateCategory");
 }
 
 function changeMonth(delta) {
@@ -286,6 +301,7 @@ function populateSelectOptions() {
 
   const fillSelect = (selector, list) => {
     const el = document.querySelector(selector);
+    el.innerHTML = '<option value="" disabled selected>選択</option>';
     list.forEach(item => {
       const opt = document.createElement("option");
       opt.value = item;
@@ -298,9 +314,23 @@ function populateSelectOptions() {
   fillSelect('#form-income select[name="category"]', state.configData.incomeCategories);
   fillSelect('#form-expense select[name="name"]', state.configData.names);
   fillSelect('#form-income select[name="name"]', state.configData.names);
+  fillSelect('#edit-category-select', state.configData.expenseCategories);
 }
 
-// モーダル制御
+// カテゴリー編集モーダルを開く
+window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
+  const form = document.getElementById("form-edit-category");
+  form.querySelector('input[name="sheetName"]').value = sheetName;
+  form.querySelector('input[name="rowIndex"]').value = rowIndex;
+  document.getElementById("edit-content-display").value = content;
+  
+  const select = document.getElementById("edit-category-select");
+  select.value = currentCategory;
+
+  document.getElementById("modal-backdrop").classList.add("active");
+  document.getElementById("modal-edit-category").classList.add("active");
+};
+
 window.openModal = (type) => {
   document.getElementById("modal-backdrop").classList.add("active");
   document.getElementById(`modal-${type}`).classList.add("active");
@@ -320,7 +350,7 @@ async function handleFormSubmit(e, action) {
 
   const submitBtn = form.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
-  submitBtn.textContent = "保存中...";
+  submitBtn.textContent = "更新中...";
 
   const success = await fetchAPI(action, formData);
 
@@ -332,7 +362,7 @@ async function handleFormSubmit(e, action) {
   }
 
   submitBtn.disabled = false;
-  submitBtn.textContent = "保存する";
+  submitBtn.textContent = action === "updateCategory" ? "更新する" : "保存する";
 }
 
 function escapeHTML(str) {
