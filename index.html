@@ -1,0 +1,134 @@
+{\rtf1\ansi\ansicpg932\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <!DOCTYPE html>\
+<html lang="ja">\
+<head>\
+  <meta charset="UTF-8">\
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">\
+  <title>\uc0\u23478 \u35336 \u31807  DashBoard</title>\
+  <link rel="stylesheet" href="style.css">\
+</head>\
+<body>\
+  <!-- \uc0\u12488 \u12540 \u12463 \u12531 \u26410 \u35373 \u23450 \u35686 \u21578  -->\
+  <div id="auth-error" class="card danger-card hidden">\
+    \uc0\u35469 \u35388 \u12488 \u12540 \u12463 \u12531 \u12364 \u35211 \u12388 \u12363 \u12426 \u12414 \u12379 \u12435 \u12290 URL\u12395  <code>?token=YOUR_TOKEN</code> \u12434 \u20184 \u19982 \u12375 \u12390 \u12450 \u12463 \u12475 \u12473 \u12375 \u12390 \u12367 \u12384 \u12373 \u12356 \u12290 \
+  </div>\
+\
+  <!-- \uc0\u12525 \u12540 \u12487 \u12451 \u12531 \u12464 \u12458 \u12540 \u12496 \u12540 \u12524 \u12452  -->\
+  <div id="loading" class="loading-overlay hidden">\
+    <div class="spinner"></div>\
+    <p>\uc0\u12487 \u12540 \u12479 \u12434 \u35501 \u12415 \u36796 \u12415 \u20013 ...</p>\
+  </div>\
+\
+  <div class="app-container">\
+    <!-- \uc0\u12504 \u12483 \u12480 \u12540 \u65286 \u26376 \u36984 \u25246  -->\
+    <header class="header">\
+      <h1>\uc0\u23478 \u35336 \u31807 </h1>\
+      <div class="month-selector">\
+        <button id="prev-month-btn" class="icon-btn">\uc0\u9664 </button>\
+        <span id="current-month-display">2026-07</span>\
+        <button id="next-month-btn" class="icon-btn">\uc0\u9654 </button>\
+      </div>\
+    </header>\
+\
+    <!-- \uc0\u24403 \u26376 \u12469 \u12510 \u12522 \u12540 \u12459 \u12540 \u12489  -->\
+    <section class="summary-grid">\
+      <div class="summary-card expense">\
+        <h3>\uc0\u32207 \u25903 \u20986 </h3>\
+        <p id="total-expense">\'a50</p>\
+      </div>\
+      <div class="summary-card income">\
+        <h3>\uc0\u32207 \u21454 \u20837 </h3>\
+        <p id="total-income">\'a50</p>\
+      </div>\
+      <div class="summary-card savings">\
+        <h3>\uc0\u36015 \u33988 \u12539 \u25237 \u36039 </h3>\
+        <p id="total-savings">\'a50</p>\
+      </div>\
+    </section>\
+\
+    <!-- \uc0\u26126 \u32048 \u12522 \u12473 \u12488 \u34920 \u31034 \u12456 \u12522 \u12450  -->\
+    <section class="details-section">\
+      <h2>\uc0\u20170 \u26376 \u12398 \u26126 \u32048 \u19968 \u35239 </h2>\
+      <div id="data-list" class="data-list">\
+        <!-- JS\uc0\u12391 \u21205 \u30340 \u12395 \u26126 \u32048 \u35201 \u32032 \u12434 \u36861 \u21152  -->\
+      </div>\
+    </section>\
+  </div>\
+\
+  <!-- \uc0\u12501 \u12525 \u12540 \u12486 \u12451 \u12531 \u12464 \u12450 \u12463 \u12471 \u12519 \u12531 \u12508 \u12479 \u12531  (FAB) -->\
+  <div class="fab-container">\
+    <button id="fab-main" class="fab-main">+</button>\
+    <div id="fab-menu" class="fab-menu hidden">\
+      <button class="fab-item" data-type="expense">\uc0\u25903 \u20986 </button>\
+      <button class="fab-item" data-type="income">\uc0\u21454 \u20837 </button>\
+      <button class="fab-item" data-type="savings">\uc0\u36015 \u33988 </button>\
+      <button class="fab-item" data-type="investment">\uc0\u25237 \u36039 </button>\
+    </div>\
+  </div>\
+\
+  <!-- \uc0\u12514 \u12540 \u12480 \u12523 \u12480 \u12452 \u12450 \u12525 \u12464 \u65288 \u20837 \u21147 \u12501 \u12457 \u12540 \u12512 \u65289  -->\
+  <div id="modal" class="modal hidden">\
+    <div class="modal-content">\
+      <div class="modal-header">\
+        <h3 id="modal-title">\uc0\u26032 \u35215 \u30331 \u37682 </h3>\
+        <button id="modal-close" class="close-btn">&times;</button>\
+      </div>\
+      <form id="entry-form">\
+        <input type="hidden" id="entry-type">\
+        \
+        <div class="form-group">\
+          <label>\uc0\u26085 \u20184 </label>\
+          <input type="date" id="entry-date" required>\
+        </div>\
+\
+        <div class="form-group">\
+          <label>\uc0\u12459 \u12486 \u12468 \u12522 \u12540 </label>\
+          <select id="entry-category" required></select>\
+        </div>\
+\
+        <div class="form-group" id="group-payment-method">\
+          <label>\uc0\u25903 \u25173 \u26041 \u27861 </label>\
+          <select id="entry-payment-method">\
+            <option value="\uc0\u29694 \u37329 ">\u29694 \u37329 </option>\
+            <option value="\uc0\u19977 \u20117 \u20303 \u21451 ">\u19977 \u20117 \u20303 \u21451 </option>\
+            <option value="\uc0\u12456 \u12509 \u12473 ">\u12456 \u12509 \u12473 </option>\
+            <option value="JRE">JRE</option>\
+            <option value="\uc0\u12509 \u12452 \u12531 \u12488 ">\u12509 \u12452 \u12531 \u12488 </option>\
+            <option value="\uc0\u12381 \u12398 \u20182 ">\u12381 \u12398 \u20182 </option>\
+          </select>\
+        </div>\
+\
+        <div class="form-group">\
+          <div class="label-with-action">\
+            <label>\uc0\u37329 \u38989 </label>\
+            <button type="button" id="income-picker-btn" class="mini-btn hidden">\uc0\u55357 \u56496  \u30452 \u36817 \u21454 \u20837 \u12363 \u12425 \u20837 \u21147 </button>\
+          </div>\
+          <!-- \uc0\u30452 \u36817 \u21454 \u20837 \u36984 \u25246 \u12489 \u12525 \u12483 \u12503 \u12480 \u12454 \u12531 \u65288 \u38560 \u12375 \u35201 \u32032 \u65289  -->\
+          <select id="recent-income-select" class="hidden-picker hidden"></select>\
+          <input type="number" id="entry-amount" placeholder="0" required>\
+        </div>\
+\
+        <div class="form-group">\
+          <label id="memo-label">\uc0\u20869 \u23481  / \u20633 \u32771 </label>\
+          <input type="text" id="entry-memo" placeholder="\uc0\u35443 \u32048 \u12434 \u20837 \u21147 ">\
+        </div>\
+\
+        <div class="form-group">\
+          <label>\uc0\u23550 \u35937 \u32773 \u65288 \u31354 \u27396 \u12399 \u23478 \u35336 \u65289 </label>\
+          <select id="entry-person"></select>\
+        </div>\
+\
+        <button type="submit" class="submit-btn">\uc0\u20445 \u23384 \u12377 \u12427 </button>\
+      </form>\
+    </div>\
+  </div>\
+\
+  <script src="app.js"></script>\
+</body>\
+</html>}
