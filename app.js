@@ -28,7 +28,7 @@ function initAuth() {
   }
 }
 
-// データ読み込み
+// データ読み込み（GAS通信エラー対策修正）
 async function loadData() {
   const token = localStorage.getItem('app_token');
   if (!token) return;
@@ -37,18 +37,26 @@ async function loadData() {
   document.getElementById('current-month-display').textContent = currentYM;
 
   try {
-    const res = await fetch(GAS_API_URL, {
+    const response = await fetch(GAS_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ token: token, action: 'getData', yearMonth: currentYM })
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8' // GASのCORS対策としてtext/plainを指定
+      },
+      body: JSON.stringify({
+        token: token,
+        action: 'getData',
+        yearMonth: currentYM
+      })
     });
-    const result = await res.json();
+
+    const result = await response.json();
 
     if (result.success) {
-      globalCategories = result.data.categories;
-      recentIncomesCache = result.data.recentIncomes;
+      globalCategories = result.data.categories || {};
+      recentIncomesCache = result.data.recentIncomes || [];
       renderDashboard(result.data);
     } else {
-      alert(result.message);
+      alert("エラー: " + result.message);
     }
   } catch (err) {
     alert("通信エラーが発生しました: " + err.message);
@@ -59,11 +67,16 @@ async function loadData() {
 
 // ダッシュボード全体の描画
 function renderDashboard(data) {
-  // AMEXと現金等の両方を合算して支出とする
-  const expenses = [...data.amex, ...data.cash];
+  const amexList = data.amex || [];
+  const cashList = data.cash || [];
+  const incomeList = data.income || [];
+  const savingsList = data.savings || [];
+  const investmentList = data.investment || [];
+
+  const expenses = [...amexList, ...cashList];
   const totalExp = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const totalInc = data.income.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const totalSav = [...data.savings, ...data.investment].reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalInc = incomeList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalSav = [...savingsList, ...investmentList].reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
   document.getElementById('total-expense').textContent = `¥${totalExp.toLocaleString()}`;
   document.getElementById('total-income').textContent = `¥${totalInc.toLocaleString()}`;
@@ -72,9 +85,9 @@ function renderDashboard(data) {
   // 明細リストの描画
   const allRecords = [
     ...expenses.map(i => ({ ...i, type: '支出' })),
-    ...data.income.map(i => ({ ...i, type: '収入' })),
-    ...data.savings.map(i => ({ ...i, type: '貯蓄' })),
-    ...data.investment.map(i => ({ ...i, type: '投資' }))
+    ...incomeList.map(i => ({ ...i, type: '収入' })),
+    ...savingsList.map(i => ({ ...i, type: '貯蓄' })),
+    ...investmentList.map(i => ({ ...i, type: '投資' }))
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const listContainer = document.getElementById('data-list');
@@ -99,7 +112,7 @@ function renderDashboard(data) {
   renderChart(expenses);
 }
 
-// カテゴリー別支出グラフ描画関数（エラー対策版）
+// カテゴリー別支出グラフ描画関数
 function renderChart(expenses) {
   const categoryTotals = {};
 
@@ -120,7 +133,6 @@ function renderChart(expenses) {
 
   const ctx = canvas.getContext('2d');
 
-  // 既存のグラフインスタンスを破棄
   if (chartInstance) {
     chartInstance.destroy();
     chartInstance = null;
@@ -242,6 +254,7 @@ function closeModal() {
   document.getElementById('modal').classList.add('hidden');
 }
 
+// データ送信（GAS通信エラー対策修正）
 async function handleFormSubmit(e) {
   e.preventDefault();
   const token = localStorage.getItem('app_token');
@@ -260,11 +273,19 @@ async function handleFormSubmit(e) {
   closeModal();
 
   try {
-    const res = await fetch(GAS_API_URL, {
+    const response = await fetch(GAS_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ token: token, action: 'addRecord', payload: payload })
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        token: token,
+        action: 'addRecord',
+        payload: payload
+      })
     });
-    const result = await res.json();
+
+    const result = await response.json();
 
     if (result.success) {
       alert("保存しました");
