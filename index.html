@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>家計簿 DashBoard</title>
+  <!-- Chart.js CDN (グラフ描画ライブラリ) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- トークン未設定警告 -->
   <div id="auth-error" class="card danger-card hidden">
     認証トークンが見つかりません。URLに <code>?token=YOUR_TOKEN</code> を付与してアクセスしてください。
   </div>
 
-  <!-- ローディングオーバーレイ -->
   <div id="loading" class="loading-overlay hidden">
     <div class="spinner"></div>
     <p>データを読み込み中...</p>
@@ -21,7 +21,7 @@
   <div class="app-container">
     <!-- ヘッダー＆月選択 -->
     <header class="header">
-      <h1>家計簿</h1>
+      <h1>家計簿ダッシュボード</h1>
       <div class="month-selector">
         <button id="prev-month-btn" class="icon-btn">◀</button>
         <span id="current-month-display">2026-07</span>
@@ -29,7 +29,7 @@
       </div>
     </header>
 
-    <!-- 当月サマリーカード -->
+    <!-- 当月サマリーカード (3列) -->
     <section class="summary-grid">
       <div class="summary-card expense">
         <h3>総支出</h3>
@@ -45,13 +45,26 @@
       </div>
     </section>
 
-    <!-- 明細リスト表示エリア -->
-    <section class="details-section">
-      <h2>今月の明細一覧</h2>
-      <div id="data-list" class="data-list">
-        <!-- JSで動的に明細要素を追加 -->
-      </div>
-    </section>
+    <!-- メインコンテンツ（ワイド画面では2列レイアウト） -->
+    <div class="dashboard-grid">
+      <!-- 左カラム: グラフエリア -->
+      <section class="charts-section">
+        <div class="chart-card">
+          <h2>支出カテゴリー内訳</h2>
+          <div class="chart-container">
+            <canvas id="expenseChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右カラム: 明細リスト -->
+      <section class="details-section">
+        <h2>今月の明細一覧</h2>
+        <div id="data-list" class="data-list">
+          <!-- JSで動的に追加 -->
+        </div>
+      </section>
+    </div>
   </div>
 
   <!-- フローティングアクションボタン (FAB) -->
@@ -65,7 +78,7 @@
     </div>
   </div>
 
-  <!-- モーダルダイアログ（入力フォーム） -->
+  <!-- モーダルダイアログ -->
   <div id="modal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
@@ -102,7 +115,6 @@
             <label>金額</label>
             <button type="button" id="income-picker-btn" class="mini-btn hidden">💰 直近収入から入力</button>
           </div>
-          <!-- 直近収入選択ドロップダウン（隠し要素） -->
           <select id="recent-income-select" class="hidden-picker hidden"></select>
           <input type="number" id="entry-amount" placeholder="0" required>
         </div>
