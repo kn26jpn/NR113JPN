@@ -4,6 +4,7 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm
 let currentYM = new Date().toISOString().slice(0, 7); // YYYY-MM
 let globalCategories = {};
 let recentIncomesCache = [];
+let chartInstance = null; // グラフインスタンス保持用
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -11,14 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData();
 });
 
-// 認証処理
 function initAuth() {
   const urlParams = new URLSearchParams(window.location.search);
   const tokenFromUrl = urlParams.get('token');
 
   if (tokenFromUrl) {
     localStorage.setItem('app_token', tokenFromUrl);
-    // URLからトークンパラメータを消去（綺麗にする）
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
@@ -28,7 +27,6 @@ function initAuth() {
   }
 }
 
-// データ読み込み
 async function loadData() {
   const token = localStorage.getItem('app_token');
   if (!token) return;
@@ -57,7 +55,6 @@ async function loadData() {
   }
 }
 
-// ダッシュボード描画
 function renderDashboard(data) {
   const expenses = [...data.amex, ...data.cash];
   const totalExp = expenses.reduce((sum, item) => sum + item.amount, 0);
@@ -68,7 +65,7 @@ function renderDashboard(data) {
   document.getElementById('total-income').textContent = `¥${totalInc.toLocaleString()}`;
   document.getElementById('total-savings').textContent = `¥${totalSav.toLocaleString()}`;
 
-  // 明細リストの統合表示（日付昇順/降順）
+  // 1. 明細リストの描画
   const allRecords = [
     ...expenses.map(i => ({ ...i, type: '支出' })),
     ...data.income.map(i => ({ ...i, type: '収入' })),
@@ -93,6 +90,56 @@ function renderDashboard(data) {
     `;
     listContainer.appendChild(el);
   });
+
+  // 2. グラフ描画
+  renderChart(expenses);
+}
+
+// カテゴリー別支出グラフ描画関数
+function renderChart(expenses) {
+  // カテゴリーごとの金額を集計
+  const categoryTotals = {};
+  expenses.forEach(item => {
+    categoryTotals[item.category] = (categoryTotals[item.category] || 0) + item.amount;
+  });
+
+  const labels = Object.keys(categoryTotals);
+  const dataValues = Object.values(categoryTotals);
+
+  const ctx = document.getElementById('expenseChart').getContext('2d');
+
+  // 既にグラフが存在する場合は破棄して再描画
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  if (labels.length === 0) {
+    // データがない場合の表示
+    return;
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataValues,
+        backgroundColor: [
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+          '#FF9F40', '#E7E9ED', '#71B37C', '#EC644B', '#15A085'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
 }
 
 function getItemColor(type) {
@@ -101,18 +148,14 @@ function getItemColor(type) {
   return 'var(--savings-color)';
 }
 
-// イベントリスナー設定
 function setupEventListeners() {
-  // 月切り替え
   document.getElementById('prev-month-btn').addEventListener('click', () => changeMonth(-1));
   document.getElementById('next-month-btn').addEventListener('click', () => changeMonth(1));
 
-  // FABメニュー開閉
   const fabMain = document.getElementById('fab-main');
   const fabMenu = document.getElementById('fab-menu');
   fabMain.addEventListener('click', () => fabMenu.classList.toggle('hidden'));
 
-  // FABモーダル起動
   document.querySelectorAll('.fab-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       fabMenu.classList.add('hidden');
@@ -121,14 +164,10 @@ function setupEventListeners() {
   });
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
-
-  // Form送信
   document.getElementById('entry-form').addEventListener('submit', handleFormSubmit);
 
-  // 💰ボタン (直近収入選択機能)
   document.getElementById('income-picker-btn').addEventListener('click', () => {
-    const select = document.getElementById('recent-income-select');
-    select.classList.toggle('hidden');
+    document.getElementById('recent-income-select').classList.toggle('hidden');
   });
 
   document.getElementById('recent-income-select').addEventListener('change', (e) => {
@@ -154,25 +193,21 @@ function openModal(type) {
   document.getElementById('entry-date').valueAsDate = new Date();
   document.getElementById('modal-title').textContent = `${getTypeLabel(type)}の入力`;
 
-  // カテゴリー設定
   const categorySelect = document.getElementById('entry-category');
   categorySelect.innerHTML = '';
   
-  // 貯蓄の場合は収入カテゴリー、それ以外は対応するカテゴリー
   const catKey = type === 'savings' ? 'income' : type;
   const categories = globalCategories[catKey] || [];
   categories.forEach(c => {
     categorySelect.innerHTML += `<option value="${c}">${c}</option>`;
   });
 
-  // 名簿設定
   const personSelect = document.getElementById('entry-person');
   personSelect.innerHTML = '<option value="家計">家計（空欄）</option>';
   (globalCategories.members || []).forEach(m => {
     personSelect.innerHTML += `<option value="${m}">${m}</option>`;
   });
 
-  // フィールド表示制御
   const paymentGroup = document.getElementById('group-payment-method');
   const incomePickerBtn = document.getElementById('income-picker-btn');
   const recentSelect = document.getElementById('recent-income-select');
@@ -181,7 +216,6 @@ function openModal(type) {
   incomePickerBtn.classList.toggle('hidden', type !== 'savings');
   recentSelect.classList.add('hidden');
 
-  // 💰機能用の直近データ設定
   if (type === 'savings') {
     recentSelect.innerHTML = '<option value="">-- 直近収入から選択 --</option>';
     recentIncomesCache.forEach(inc => {
@@ -222,7 +256,7 @@ async function handleFormSubmit(e) {
 
     if (result.success) {
       alert("保存しました");
-      loadData(); // 再読み込み
+      loadData();
     } else {
       alert("エラー: " + result.message);
     }
