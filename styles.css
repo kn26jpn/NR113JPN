@@ -2,7 +2,6 @@
    Design System & Variables
    ========================================================================== */
 :root {
-  /* Color Palette */
   --bg-app: #f6f9fc;
   --bg-surface: #ffffff;
   --text-main: #0a2540;
@@ -21,18 +20,15 @@
   --border-color: #e6ebf1;
   --border-focus: #a5a6f6;
   
-  /* Elevation & Shadows */
   --shadow-sm: 0 1px 3px rgba(50, 50, 93, 0.05), 0 1px 0 rgba(0, 0, 0, 0.02);
   --shadow-md: 0 4px 6px rgba(50, 50, 93, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 13px 27px -5px rgba(50, 50, 93, 0.15), 0 8px 16px -8px rgba(0, 0, 0, 0.2);
   
-  /* Spacing & Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-full: 9999px;
   
-  /* Transitions */
   --transition-fast: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
