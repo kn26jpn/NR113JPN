@@ -32,6 +32,8 @@
           </button>
         </div>
 
+        <button id="btn-open-budget" class="btn btn-outline" style="font-size: 0.8rem; padding: 6px 12px;">予算設定</button>
+
         <nav class="view-toggle">
           <button id="btn-monthly-view" class="toggle-tab active">月別表示</button>
           <button id="btn-annual-view" class="toggle-tab">年間分析</button>
@@ -76,10 +78,10 @@
           </div>
         </div>
 
-        <!-- 今月の支出カテゴリー（棒グラフ） -->
+        <!-- 今月の支出カテゴリー（縦棒グラフ＋予算ライン） -->
         <div class="content-card chart-card-monthly mb-6">
           <div class="card-header">
-            <h2 class="card-heading">今月の支出カテゴリー</h2>
+            <h2 class="card-heading">今月の支出カテゴリー vs 予算</h2>
           </div>
           <div class="chart-wrapper-monthly">
             <canvas id="monthly-category-chart"></canvas>
@@ -250,6 +252,25 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
           <button type="submit" class="btn btn-primary">更新する</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Budget Setting Modal -->
+    <div id="modal-budget" class="modal-window">
+      <div class="modal-header">
+        <h3 class="modal-title"><span id="budget-month-label"></span> のカテゴリー別予算</h3>
+        <button class="btn-icon" onclick="closeModals()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="form-budget" class="modal-body">
+        <div id="budget-input-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto;">
+          <!-- Dynamic Injection -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="btn btn-primary">予算を保存</button>
         </div>
       </form>
     </div>
