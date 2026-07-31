@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Ledger</title>
+  <title>Smart Ledger High-Speed</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
           <button id="prev-month" class="btn-icon" aria-label="前月">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
           </button>
-          <span id="month-display" class="month-label">2026年 7月</span>
+          <span id="month-display" class="month-label">----年 --月</span>
           <button id="next-month" class="btn-icon" aria-label="翌月">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
           </button>
@@ -159,7 +159,7 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">カテゴリー</label>
-            <select name="category" class="form-select" required><option value="" disabled selected>選択</option></select>
+            <select name="category" id="select-expense-category" class="form-select" required><option value="" disabled selected>選択</option></select>
           </div>
           <div class="form-group">
             <label class="form-label">支払方法</label>
@@ -182,7 +182,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">負担者</label>
-            <select name="name" class="form-select"><option value="">家計（共通）</option></select>
+            <select name="name" id="select-expense-name" class="form-select"><option value="">家計（共通）</option></select>
           </div>
         </div>
         <div class="modal-footer">
@@ -207,7 +207,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">カテゴリー</label>
-          <select name="category" class="form-select" required><option value="" disabled selected>選択</option></select>
+          <select name="category" id="select-income-category" class="form-select" required><option value="" disabled selected>選択</option></select>
         </div>
         <div class="form-group">
           <label class="form-label">備考 / 内容</label>
@@ -220,7 +220,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">帰属</label>
-            <select name="name" class="form-select"><option value="">家計（共通）</option></select>
+            <select name="name" id="select-income-name" class="form-select"><option value="">家計（共通）</option></select>
           </div>
         </div>
         <div class="modal-footer">
