@@ -14,7 +14,7 @@
 
 body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 80px; }
 
-/* 画面横幅いっぱいに使うよう設定（最大1600pxまで広げる） */
+/* 画面横幅いっぱいに使う設定（最大1600px） */
 .app-container { max-width: 1600px; margin: 0 auto; padding: 24px 16px; }
 
 /* ヘッダー */
@@ -22,7 +22,7 @@ body { background-color: var(--bg-color); color: var(--text-main); padding-botto
 .month-selector { display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; }
 .icon-btn { border: none; background: #eee; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
 
-/* サマリーカード (横幅いっぱいに並べる) */
+/* サマリーカード */
 .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .summary-card { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .summary-card h3 { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 8px; }
@@ -41,7 +41,7 @@ body { background-color: var(--bg-color); color: var(--text-main); padding-botto
 /* グラフエリア */
 .chart-card { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .chart-card h2 { font-size: 1.1rem; margin-bottom: 16px; }
-.chart-container { position: relative; width: 100%; max-height: 400px; display: flex; justify-content: center; }
+.chart-container { position: relative; width: 100%; height: 320px; max-height: 400px; display: flex; justify-content: center; align-items: center; }
 
 /* 明細リスト */
 .details-section { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
