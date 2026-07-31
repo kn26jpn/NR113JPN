@@ -3,153 +3,217 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Kakeibo V2</title>
-  <!-- Google Fonts -->
+  <title>Smart Ledger</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="app-container">
     <!-- Header -->
-    <header>
-      <div class="header-left">
-        <button id="prev-month" class="btn-icon">
-          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-        </button>
-        <h1 id="month-display">2026年 7月</h1>
-        <button id="next-month" class="btn-icon">
-          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-        </button>
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <span class="brand-title">Ledger</span>
       </div>
-      <div class="header-right">
-        <button id="toggle-view" class="btn btn-outline">年間分析</button>
+
+      <div class="header-controls">
+        <div class="month-selector">
+          <button id="prev-month" class="btn-icon" aria-label="前月">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <span id="month-display" class="month-label">2026年 7月</span>
+          <button id="next-month" class="btn-icon" aria-label="翌月">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+
+        <nav class="view-toggle">
+          <button id="btn-monthly-view" class="toggle-tab active">月別表示</button>
+          <button id="btn-annual-view" class="toggle-tab">年間分析</button>
+        </nav>
       </div>
     </header>
 
-    <!-- Monthly View -->
-    <main id="monthly-view" class="view active">
-      <div class="summary-cards">
-        <div class="card income">
-          <div class="card-label">収入</div>
-          <div class="card-value" id="sum-income">¥0</div>
+    <!-- Main Content -->
+    <main class="app-content">
+      <!-- Monthly View -->
+      <section id="monthly-view" class="view-section active">
+        <!-- Dashboard Summary -->
+        <div class="summary-grid">
+          <div class="summary-card income">
+            <div class="card-meta">
+              <span class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+              </span>
+              <span class="card-title">今月の総収入</span>
+            </div>
+            <div class="card-value" id="sum-income">¥0</div>
+          </div>
+
+          <div class="summary-card expense">
+            <div class="card-meta">
+              <span class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+              <span class="card-title">今月の総支出</span>
+            </div>
+            <div class="card-value" id="sum-expense">¥0</div>
+          </div>
+
+          <div class="summary-card balance">
+            <div class="card-meta">
+              <span class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+              </span>
+              <span class="card-title">今月の収支差額</span>
+            </div>
+            <div class="card-value" id="sum-total">¥0</div>
+          </div>
         </div>
-        <div class="card expense">
-          <div class="card-label">支出</div>
-          <div class="card-value" id="sum-expense">¥0</div>
+
+        <!-- Transactions List -->
+        <div class="content-card">
+          <div class="card-header">
+            <h2 class="card-heading">取引履歴</h2>
+            <span class="badge" id="transaction-count">0 件</span>
+          </div>
+          <div id="transaction-list" class="transaction-list">
+            <!-- Dynamic Injection -->
+          </div>
         </div>
-        <div class="card total">
-          <div class="card-label">収支</div>
-          <div class="card-value" id="sum-total">¥0</div>
+      </section>
+
+      <!-- Annual View -->
+      <section id="annual-view" class="view-section">
+        <div class="annual-grid">
+          <div class="content-card chart-card">
+            <div class="card-header">
+              <h2 class="card-heading">支出カテゴリー分析</h2>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="category-chart"></canvas>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="card-header">
+              <h2 class="card-heading">カテゴリー別内訳</h2>
+            </div>
+            <div id="category-breakdown" class="breakdown-list">
+              <!-- Dynamic Injection -->
+            </div>
+          </div>
         </div>
-      </div>
-      <div id="transaction-list" class="list-container"></div>
+      </section>
     </main>
 
-    <!-- Annual View -->
-    <main id="annual-view" class="view">
-      <div class="card chart-card">
-        <div class="card-label">今月のカテゴリー別支出</div>
-        <div class="chart-container">
-          <canvas id="annual-chart"></canvas>
-        </div>
-      </div>
-    </main>
-
-    <!-- Floating Action Button -->
-    <div class="fab-container">
+    <!-- Floating Action Button (FAB) -->
+    <div class="fab-wrapper">
       <div class="fab-menu" id="fab-menu">
-        <button class="fab-item expense" onclick="openModal('expense')">支出登録</button>
-        <button class="fab-item income" onclick="openModal('income')">収入登録</button>
+        <button class="fab-action expense" onclick="openModal('expense')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span>支出を記録</span>
+        </button>
+        <button class="fab-action income" onclick="openModal('income')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span>収入を記録</span>
+        </button>
       </div>
-      <button class="fab" id="fab-main">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <button class="fab-trigger" id="fab-trigger" aria-label="新規追加">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
 
-    <!-- Modals -->
-    <div id="modal-overlay" class="modal-overlay"></div>
-    
+    <!-- Modal Overlay & Modals -->
+    <div id="modal-backdrop" class="modal-backdrop"></div>
+
     <!-- Expense Modal -->
-    <div id="expense-modal" class="modal">
+    <div id="modal-expense" class="modal-window">
       <div class="modal-header">
-        <h2>支出の登録</h2>
-        <button class="btn-icon close-modal" onclick="closeModals()">
-          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        <h3 class="modal-title">支出の登録</h3>
+        <button class="btn-icon" onclick="closeModals()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <form id="expense-form">
+      <form id="form-expense" class="modal-body">
         <div class="form-group">
-          <label>日付</label>
-          <input type="date" name="date" required>
+          <label class="form-label">日付</label>
+          <input type="date" name="date" class="form-input" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">カテゴリー</label>
+            <select name="category" class="form-select" required><option value="" disabled selected>選択</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">支払方法</label>
+            <select name="payment" class="form-select" required>
+              <option value="現金" selected>現金</option>
+              <option value="カード">カード</option>
+              <option value="ポイント">ポイント</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
-          <label>カテゴリー</label>
-          <select name="category" required><option value="" disabled selected>選択してください</option></select>
+          <label class="form-label">内容</label>
+          <input type="text" name="content" class="form-input" placeholder="例: スーパーで買物" required>
         </div>
-        <div class="form-group">
-          <label>内容</label>
-          <input type="text" name="content" placeholder="例: 食料品買い出し" required>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">金額 (円)</label>
+            <input type="number" name="amount" class="form-input" placeholder="0" min="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">負担者</label>
+            <select name="name" class="form-select"><option value="">家計（共通）</option></select>
+          </div>
         </div>
-        <div class="form-group">
-          <label>支払方法</label>
-          <select name="payment" required>
-            <option value="" disabled selected>選択してください</option>
-            <option value="現金">現金</option>
-            <option value="カード">カード</option>
-            <option value="ポイント">ポイント</option>
-            <option value="その他">その他</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>金額 (¥)</label>
-          <input type="number" name="amount" placeholder="例: 1500" required>
-        </div>
-        <div class="form-group">
-          <label>名前 (空白=家計)</label>
-          <select name="name"><option value="">家計（指定なし）</option></select>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary cancel-btn" onclick="closeModals()">キャンセル</button>
-          <button type="submit" class="btn btn-primary submit-btn">登録する</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="btn btn-primary">保存する</button>
         </div>
       </form>
     </div>
 
     <!-- Income Modal -->
-    <div id="income-modal" class="modal">
+    <div id="modal-income" class="modal-window">
       <div class="modal-header">
-        <h2>収入の登録</h2>
-        <button class="btn-icon close-modal" onclick="closeModals()">
-          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        <h3 class="modal-title">収入の登録</h3>
+        <button class="btn-icon" onclick="closeModals()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <form id="income-form">
+      <form id="form-income" class="modal-body">
         <div class="form-group">
-          <label>日付</label>
-          <input type="date" name="date" required>
+          <label class="form-label">日付</label>
+          <input type="date" name="date" class="form-input" required>
         </div>
         <div class="form-group">
-          <label>カテゴリー</label>
-          <select name="category" required><option value="" disabled selected>選択してください</option></select>
+          <label class="form-label">カテゴリー</label>
+          <select name="category" class="form-select" required><option value="" disabled selected>選択</option></select>
         </div>
         <div class="form-group">
-          <label>備考</label>
-          <input type="text" name="note" placeholder="例: 給与、フリマ売上">
+          <label class="form-label">備考 / 内容</label>
+          <input type="text" name="note" class="form-input" placeholder="例: 7月分給与">
         </div>
-        <div class="form-group">
-          <label>金額 (¥)</label>
-          <input type="number" name="amount" placeholder="例: 250000" required>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">金額 (円)</label>
+            <input type="number" name="amount" class="form-input" placeholder="0" min="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">帰属</label>
+            <select name="name" class="form-select"><option value="">家計（共通）</option></select>
+          </div>
         </div>
-        <div class="form-group">
-          <label>名前 (空白=家計)</label>
-          <select name="name"><option value="">家計（指定なし）</option></select>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary cancel-btn" onclick="closeModals()">キャンセル</button>
-          <button type="submit" class="btn btn-primary submit-btn">登録する</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="btn btn-primary">保存する</button>
         </div>
       </form>
     </div>
