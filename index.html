@@ -3,154 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>家計簿 Apps</title>
+  <title>Smart Kakeibo</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- Lightweight Chart.js for Annual Analysis -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header class="app-header">
-    <h1>スマート家計簿</h1>
-    <nav class="nav-tabs">
-      <button id="tab-monthly-btn" class="active" onclick="switchTab('monthly')">月別明細</button>
-      <button id="tab-annual-btn" onclick="switchTab('annual')">年間分析</button>
-    </nav>
-  </header>
-
-  <main class="container">
-    <!-- 月別ビュー -->
-    <section id="view-monthly" class="view-section active">
-      <div class="month-selector">
-        <button onclick="changeMonth(-1)">&lt; 前月</button>
-        <span id="current-month-display">2026 / 01</span>
-        <button onclick="changeMonth(1)">翌月 &gt;</button>
-      </div>
-
-      <div class="summary-cards">
-        <div class="card income">
-          <span class="label">収入</span>
-          <span id="total-income" class="val">¥0</span>
-        </div>
-        <div class="card expense">
-          <span class="label">支出</span>
-          <span id="total-expense" class="val">¥0</span>
-        </div>
-        <div class="card balance">
-          <span class="label">収支</span>
-          <span id="total-balance" class="val">¥0</span>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>日付</th>
-              <th>種別</th>
-              <th>カテゴリ</th>
-              <th>内容</th>
-              <th>支払方法</th>
-              <th>金額</th>
-              <th>対象</th>
-            </tr>
-          </thead>
-          <tbody id="transaction-list">
-            <!-- JSで動的生成 -->
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 年間分析ビュー -->
-    <section id="view-annual" class="view-section">
-      <div class="year-selector">
-        <button onclick="changeYear(-1)">&lt; 前年</button>
-        <span id="current-year-display">2026年</span>
-        <button onclick="changeYear(1)">翌年 &gt;</button>
-      </div>
-
-      <div class="chart-container">
-        <h3>月別収支推移</h3>
-        <canvas id="bar-chart"></canvas>
-      </div>
-
-      <div class="chart-container">
-        <h3>年間支出カテゴリー内訳</h3>
-        <canvas id="pie-chart"></canvas>
-      </div>
-    </section>
-  </main>
-
-  <!-- FAB (フローティングアクションボタン) -->
-  <div class="fab-container">
-    <div class="fab-options" id="fab-options">
-      <button class="fab-child expense" onclick="openModal('expense')">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        支出追加
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <button id="prev-month" class="icon-btn">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
       </button>
-      <button class="fab-child income" onclick="openModal('income')">
+      <h1 id="month-display">2026年 7月</h1>
+      <button id="next-month" class="icon-btn">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+      <button id="toggle-view" class="btn-text">年間分析</button>
+    </header>
+
+    <!-- Monthly View -->
+    <main id="monthly-view" class="view active">
+      <div class="summary-cards">
+        <div class="card income">収入: <span id="sum-income">¥0</span></div>
+        <div class="card expense">支出: <span id="sum-expense">¥0</span></div>
+        <div class="card total">収支: <span id="sum-total">¥0</span></div>
+      </div>
+      <div id="transaction-list" class="list-container"></div>
+    </main>
+
+    <!-- Annual View -->
+    <main id="annual-view" class="view">
+      <div class="chart-container">
+        <canvas id="annual-chart"></canvas>
+      </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <div class="fab-container">
+      <div class="fab-menu" id="fab-menu">
+        <button class="fab-item expense" onclick="openModal('expense')">支出</button>
+        <button class="fab-item income" onclick="openModal('income')">収入</button>
+      </div>
+      <button class="fab" id="fab-main">
         <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        収入追加
       </button>
     </div>
-    <button class="fab-main" id="fab-main" onclick="toggleFab()">
-      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    </button>
-  </div>
 
-  <!-- 登録モーダル -->
-  <div id="entry-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h2 id="modal-title">支出登録</h2>
-      <form id="entry-form" onsubmit="handleFormSubmit(event)">
-        <input type="hidden" id="form-type" value="expense">
-        
-        <div class="form-group">
-          <label>日付</label>
-          <input type="date" id="form-date" required>
-        </div>
-        
-        <div class="form-group">
-          <label>カテゴリー</label>
-          <select id="form-category" required></select>
-        </div>
-
-        <div class="form-group">
-          <label id="label-memo">内容</label>
-          <input type="text" id="form-memo" placeholder="例: スーパーで買出し">
-        </div>
-
-        <div class="form-group" id="group-payment">
-          <label>支払方法</label>
-          <select id="form-payment">
-            <option value="現金">現金</option>
-            <option value="カード">カード</option>
-            <option value="ポイント">ポイント</option>
-            <option value="その他">その他</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>金額 (円)</label>
-          <input type="number" id="form-amount" min="1" required placeholder="0">
-        </div>
-
-        <div class="form-group">
-          <label>対象(名前)</label>
-          <select id="form-person">
-            <option value="">家計(全員)</option>
-            <!-- 名簿から動的生成 -->
-          </select>
-        </div>
-
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay"></div>
+    
+    <!-- Expense Modal -->
+    <div id="expense-modal" class="modal">
+      <h2>支出の登録</h2>
+      <form id="expense-form">
+        <input type="date" name="date" required>
+        <select name="category" required><option value="" disabled selected>カテゴリー</option></select>
+        <input type="text" name="content" placeholder="内容" required>
+        <select name="payment" required>
+          <option value="" disabled selected>支払方法</option>
+          <option value="現金">現金</option>
+          <option value="カード">カード</option>
+          <option value="ポイント">ポイント</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="number" name="amount" placeholder="金額 (¥)" required>
+        <select name="name"><option value="">家計（指定なし）</option></select>
         <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
-          <button type="submit" class="btn-submit">保存</button>
+          <button type="button" class="cancel-btn" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="submit-btn">登録</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Income Modal -->
+    <div id="income-modal" class="modal">
+      <h2>収入の登録</h2>
+      <form id="income-form">
+        <input type="date" name="date" required>
+        <select name="category" required><option value="" disabled selected>カテゴリー</option></select>
+        <input type="text" name="note" placeholder="備考" required>
+        <input type="number" name="amount" placeholder="金額 (¥)" required>
+        <select name="name"><option value="">家計（指定なし）</option></select>
+        <div class="modal-actions">
+          <button type="button" class="cancel-btn" onclick="closeModals()">キャンセル</button>
+          <button type="submit" class="submit-btn">登録</button>
         </div>
       </form>
     </div>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
