@@ -1,484 +1,312 @@
-// ==========================================================================
-// App State & Configurations
-// ==========================================================================
-const CONFIG = {
-  // ★ デプロイしたGASのウェブアプリURLをここに記述してください ★
-  GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
+// GASデプロイ後のURLを貼り付けてください
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec";
+
+// グローバル状態管理
+let appState = {
+  currentDate: new Date(),
+  viewMode: "month", // 'month' or 'year'
+  rawData: {
+    expCategories: [],
+    incCategories: [],
+    members: [],
+    budgets: {},
+    expenses: [],
+    incomes: []
+  }
 };
 
+let expenseChartInstance = null;
+let yearChartInstance = null;
+
+// カテゴリー別パレット生成
 const COLOR_PALETTE = [
-  "#635bff", "#00d4b6", "#ff5b60", "#ffc01e", "#f77238", "#a5a6f6", "#0a2540", "#20c997", "#e83e8c"
+  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"
 ];
 
-let state = {
-  currentDate: new Date(),
-  configData: { expenseCategories: [], incomeCategories: [], names: [] },
-  transactions: [],
-  budgets: {}
-};
-
-let monthlyChartInstance = null;
-let annualChartInstance = null;
-
-function getCategoryColor(category) {
-  if (!category) return "#8898aa";
-  const categories = state.configData.expenseCategories || [];
-  const index = categories.indexOf(category);
-  if (index !== -1) {
-    return COLOR_PALETTE[index % COLOR_PALETTE.length];
-  }
-  let hash = 0;
-  for (let i = 0; i < category.length; i++) {
-    hash = category.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
-}
-
-// ==========================================================================
-// Initialization
-// ==========================================================================
-document.addEventListener("DOMContentLoaded", async () => {
-  setupEventListeners();
-  initDefaultDates();
-  await loadInitialBundle();
+document.addEventListener("DOMContentLoaded", () => {
+  initEventListeners();
+  fetchInitialData();
 });
 
-// ==========================================================================
-// API Communication Helper
-// ==========================================================================
-async function fetchAPI(action, payload = {}) {
+// JSONPを利用したデータ取得（CORS完全回避）
+function fetchInitialData() {
+  const callbackName = "gasCallback_" + Date.now();
+  window[callbackName] = function(response) {
+    if (response.status === "success") {
+      appState.rawData = response.data;
+      renderApp();
+    } else {
+      alert("データ取得エラー: " + response.message);
+    }
+    delete window[callbackName];
+    document.body.removeChild(script);
+  };
+
+  const script = document.createElement("script");
+  script.src = `${GAS_URL}?action=getInitialData&callback=${callbackName}`;
+  document.body.appendChild(script);
+}
+
+// データ保存 POST リクエスト (redirect: "follow" 必須)
+async function sendPostData(payload) {
   try {
-    const response = await fetch(CONFIG.GAS_URL, {
+    const response = await fetch(GAS_URL, {
       method: "POST",
+      redirect: "follow",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action, ...payload })
+      body: JSON.stringify(payload)
     });
-
-    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-    const res = await response.json();
-    if (!res.success) throw new Error(res.error || "API returned failure");
-    return res.data;
-  } catch (error) {
-    console.error("API Error:", error);
-    alert("データの同期に失敗しました。GASのデプロイURLおよびネットワーク状況を確認してください。");
-    return null;
+    const result = await response.json();
+    if (result.status === "success") {
+      fetchInitialData(); // 最新データ再読み込み
+    } else {
+      alert("保存エラー: " + result.message);
+    }
+  } catch (err) {
+    alert("通信エラーが発生しました: " + err);
   }
 }
 
-// ==========================================================================
-// Data Operations
-// ==========================================================================
-async function loadInitialBundle() {
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth() + 1;
-  
-  document.getElementById("month-display").textContent = `${year}年 ${month}月`;
-  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データを読み込み中...</div>';
+function initEventListeners() {
+  // ナビゲーション
+  document.getElementById("btn-prev").addEventListener("click", () => changePeriod(-1));
+  document.getElementById("btn-next").addEventListener("click", () => changePeriod(1));
+  document.getElementById("btn-view-month").addEventListener("click", () => setViewMode("month"));
+  document.getElementById("btn-view-year").addEventListener("click", () => setViewMode("year"));
 
-  const res = await fetchAPI("getInitialBundle", { year, month });
-  if (res) {
-    state.configData = res.config || { expenseCategories: [], incomeCategories: [], names: [] };
-    state.transactions = res.transactions || [];
-    state.budgets = res.budgets || {};
-    
-    populateSelectOptions();
-    renderMonthlyView();
-    renderAnnualView();
-  }
+  // FAB モーダル
+  const fabWrapper = document.getElementById("fab-wrapper");
+  document.getElementById("fab-main").addEventListener("click", () => fabWrapper.classList.toggle("active"));
+  document.getElementById("btn-open-expense").addEventListener("click", () => openTransactionModal("expense"));
+  document.getElementById("btn-open-income").addEventListener("click", () => openTransactionModal("income"));
+  document.getElementById("btn-close-modal").addEventListener("click", closeTransactionModal);
+
+  // フォーム送信
+  document.getElementById("transaction-form").addEventListener("submit", handleTransactionSubmit);
+  document.getElementById("btn-open-budget").addEventListener("click", openBudgetModal);
+  document.getElementById("btn-close-budget-modal").addEventListener("click", () => document.getElementById("budget-modal").classList.add("hidden"));
+  document.getElementById("budget-form").addEventListener("submit", handleBudgetSubmit);
 }
 
-async function loadMonthData() {
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth() + 1;
-  
-  document.getElementById("month-display").textContent = `${year}年 ${month}月`;
-  document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データを読み込み中...</div>';
-
-  const res = await fetchAPI("getData", { year, month });
-  if (res) {
-    state.transactions = res.transactions || [];
-    state.budgets = res.budgets || {};
-    
-    renderMonthlyView();
-    renderAnnualView();
-  }
-}
-
-function renderMonthlyView() {
-  const listContainer = document.getElementById("transaction-list");
-  listContainer.innerHTML = "";
-
-  let incomeTotal = 0;
-  let expenseTotal = 0;
-
-  document.getElementById("transaction-count").textContent = `${state.transactions.length} 件`;
-
-  if (state.transactions.length === 0) {
-    listContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-subtle);">今月の記録はありません</div>';
+function changePeriod(delta) {
+  if (appState.viewMode === "month") {
+    appState.currentDate.setMonth(appState.currentDate.getMonth() + delta);
   } else {
-    state.transactions.forEach(tx => {
-      const amount = Number(tx.amount) || 0;
-      if (tx.type === "income") incomeTotal += amount;
-      else expenseTotal += amount;
-
-      const dateObj = new Date(tx.date);
-      const dateFormatted = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-      const badgeColor = tx.type === "income" ? "var(--income-color)" : getCategoryColor(tx.category);
-
-      const row = document.createElement("div");
-      row.className = "tx-row";
-      
-      const editBtnHtml = (tx.sheetName && tx.rowIndex) ? `
-        <button class="btn-edit-cat" onclick="openEditCategoryModal('${tx.sheetName}', ${tx.rowIndex}, '${escapeHTML(tx.content || tx.category)}', '${escapeHTML(tx.category)}')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </button>
-      ` : "";
-
-      row.innerHTML = `
-        <div class="tx-left">
-          <div class="tx-category-badge" style="background-color: ${badgeColor};">
-            ${tx.category ? tx.category.slice(0, 2) : "収入"}
-          </div>
-          <div class="tx-details">
-            <span class="tx-title">${escapeHTML(tx.content || tx.category)}</span>
-            <span class="tx-sub">${dateFormatted} ${tx.payment ? `• ${tx.payment}` : ''} ${tx.name ? `• ${tx.name}` : ''}</span>
-          </div>
-        </div>
-        <div class="tx-right">
-          <!-- 支出も含めて完全にプラスの金額（¥X,XXX）で表示 -->
-          <div class="tx-amount ${tx.type}">
-            ¥${amount.toLocaleString()}
-          </div>
-          ${editBtnHtml}
-        </div>
-      `;
-      listContainer.appendChild(row);
-    });
+    appState.currentDate.setFullYear(appState.currentDate.getFullYear() + delta);
   }
-
-  document.getElementById("sum-income").textContent = `¥${incomeTotal.toLocaleString()}`;
-  document.getElementById("sum-expense").textContent = `¥${expenseTotal.toLocaleString()}`;
-  
-  const balance = incomeTotal - expenseTotal;
-  const balanceEl = document.getElementById("sum-total");
-  balanceEl.textContent = `¥${balance.toLocaleString()}`;
-  balanceEl.style.color = balance < 0 ? "var(--expense-color)" : "var(--text-main)";
-
-  renderMonthlyChart();
+  renderApp();
 }
 
-function renderMonthlyChart() {
-  const expenses = state.transactions.filter(t => t.type === "expense");
-  const categoryMap = {};
+function setViewMode(mode) {
+  appState.viewMode = mode;
+  document.getElementById("btn-view-month").classList.toggle("active", mode === "month");
+  document.getElementById("btn-view-year").classList.toggle("active", mode === "year");
+  document.getElementById("view-month-section").classList.toggle("hidden", mode !== "month");
+  document.getElementById("view-year-section").classList.toggle("hidden", mode !== "year");
+  renderApp();
+}
 
-  if (state.configData && state.configData.expenseCategories) {
-    state.configData.expenseCategories.forEach(cat => categoryMap[cat] = 0);
+function renderApp() {
+  const y = appState.currentDate.getFullYear();
+  const m = String(appState.currentDate.getMonth() + 1).padStart(2, '0');
+
+  if (appState.viewMode === "month") {
+    document.getElementById("current-period-title").innerText = `${y}年${m}月`;
+    renderMonthView(y, m);
+  } else {
+    document.getElementById("current-period-title").innerText = `${y}年`;
+    renderYearView(y);
   }
+}
 
-  expenses.forEach(t => {
-    const cat = t.category || "未分類";
-    categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
+function renderMonthView(year, month) {
+  const prefix = `${year}-${month}`;
+  const monthlyExpenses = appState.rawData.expenses.filter(e => e.date.startsWith(prefix));
+  const monthlyIncomes = appState.rawData.incomes.filter(i => i.date.startsWith(prefix));
+
+  const totalExp = monthlyExpenses.reduce((sum, item) => sum + item.amount, 0);
+  const totalInc = monthlyIncomes.reduce((sum, item) => sum + item.amount, 0);
+  const totalBudget = Object.values(appState.rawData.budgets).reduce((a, b) => a + b, 0);
+
+  document.getElementById("summary-income").innerText = `¥${totalInc.toLocaleString()}`;
+  document.getElementById("summary-expense").innerText = `¥${totalExp.toLocaleString()}`;
+  document.getElementById("summary-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
+  document.getElementById("summary-budget-diff").innerText = `¥${(totalBudget - totalExp).toLocaleString()}`;
+
+  // 集計: 0円カテゴリーを除外
+  const catMap = {};
+  appState.rawData.expCategories.forEach(cat => catMap[cat] = 0);
+  monthlyExpenses.forEach(e => {
+    catMap[e.category] = (catMap[e.category] || 0) + e.amount;
   });
 
-  // ★修正①★ 支出額も予算額も両方0円のカテゴリーを除外するフィルタリング
-  const allLabels = Object.keys(categoryMap);
-  const activeLabels = allLabels.filter(cat => {
-    const actual = categoryMap[cat] || 0;
-    const budget = state.budgets[cat] || 0;
-    return actual > 0 || budget > 0;
-  });
+  const activeCategories = Object.keys(catMap).filter(cat => catMap[cat] > 0);
+  const expData = activeCategories.map(cat => catMap[cat]);
+  const budgetData = activeCategories.map(cat => appState.rawData.budgets[cat] || 0);
 
-  const actualValues = activeLabels.map(cat => categoryMap[cat]);
-  const budgetValues = activeLabels.map(cat => state.budgets[cat] || 0);
-  const backgroundColors = activeLabels.map(cat => getCategoryColor(cat));
+  renderExpenseChart(activeCategories, expData, budgetData);
+}
 
-  const ctx = document.getElementById("monthly-category-chart");
-  if (monthlyChartInstance) monthlyChartInstance.destroy();
+function renderExpenseChart(labels, expData, budgetData) {
+  const ctx = document.getElementById("expenseChart").getContext("2d");
+  if (expenseChartInstance) expenseChartInstance.destroy();
 
-  monthlyChartInstance = new Chart(ctx, {
+  expenseChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: activeLabels,
+      labels: labels,
       datasets: [
         {
-          label: "支出額 (円)",
-          data: actualValues,
-          backgroundColor: backgroundColors,
-          borderRadius: 6,
-          order: 2
+          label: "支出額",
+          data: expData,
+          backgroundColor: labels.map((_, i) => COLOR_PALETTE[i % COLOR_PALETTE.length])
         },
         {
-          label: "予算 (円)",
-          data: budgetValues,
+          label: "設定予算",
+          data: budgetData,
           type: "line",
-          borderColor: "#ff5b60",
+          borderColor: "#000000",
           borderWidth: 2,
-          borderDash: [5, 5],
-          pointBackgroundColor: "#ff5b60",
-          pointRadius: 4,
-          fill: false,
-          order: 1
+          fill: false
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "top", labels: { usePointStyle: true } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } },
-        y: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } }, beginAtZero: true }
-      }
+      scales: { y: { beginAtZero: true } }
     }
   });
 }
 
-function renderAnnualView() {
-  const expenses = state.transactions.filter(t => t.type === "expense");
-  const categoryMap = {};
+function renderYearView(year) {
+  const monthlyIncomes = Array(12).fill(0);
+  const monthlyExpenses = Array(12).fill(0);
 
-  expenses.forEach(t => {
-    const cat = t.category || "未分類";
-    categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
+  appState.rawData.incomes.forEach(i => {
+    if (i.date.startsWith(year)) {
+      const m = parseInt(i.date.split("-")[1], 10) - 1;
+      monthlyIncomes[m] += i.amount;
+    }
   });
 
-  const labels = Object.keys(categoryMap).filter(cat => categoryMap[cat] > 0);
-  const values = labels.map(cat => categoryMap[cat]);
-  const backgroundColors = labels.map(cat => getCategoryColor(cat));
-
-  const breakdownContainer = document.getElementById("category-breakdown");
-  breakdownContainer.innerHTML = "";
-  
-  labels.forEach((cat, i) => {
-    const item = document.createElement("div");
-    item.className = "breakdown-item";
-    item.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 12px; height: 12px; border-radius: 50%; background-color: ${backgroundColors[i]}; display: inline-block;"></span>
-        <span style="font-weight: 600;">${escapeHTML(cat)}</span>
-      </div>
-      <span style="font-weight: 700;">¥${values[i].toLocaleString()}</span>
-    `;
-    breakdownContainer.appendChild(item);
+  appState.rawData.expenses.forEach(e => {
+    if (e.date.startsWith(year)) {
+      const m = parseInt(e.date.split("-")[1], 10) - 1;
+      monthlyExpenses[m] += e.amount;
+    }
   });
 
-  const ctx = document.getElementById("category-chart");
-  if (annualChartInstance) annualChartInstance.destroy();
+  const ctx = document.getElementById("yearChart").getContext("2d");
+  if (yearChartInstance) yearChartInstance.destroy();
 
-  annualChartInstance = new Chart(ctx, {
+  yearChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: labels,
-      datasets: [{
-        label: "年間支出額 (円)",
-        data: values,
-        backgroundColor: backgroundColors,
-        borderRadius: 6
-      }]
+      labels: ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
+      datasets: [
+        { label: "収入", data: monthlyIncomes, backgroundColor: "#10b981" },
+        { label: "支出", data: monthlyExpenses, backgroundColor: "#ef4444" }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } },
-        y: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } }, beginAtZero: true }
-      }
+      scales: { y: { beginAtZero: true } }
     }
   });
 }
 
-// ==========================================
-// Event Listeners & UI Controls
-// ==========================================
-function setupEventListeners() {
-  document.getElementById("prev-month").onclick = () => changeMonth(-1);
-  document.getElementById("next-month").onclick = () => changeMonth(1);
+// フォーム・モーダル関連
+function openTransactionModal(type) {
+  document.getElementById("fab-wrapper").classList.remove("active");
+  document.getElementById("form-type").value = type;
+  document.getElementById("modal-title").innerText = type === "expense" ? "支出の登録" : "収入の登録";
+  document.getElementById("group-payment-method").style.display = type === "expense" ? "flex" : "none";
 
-  const btnMonthly = document.getElementById("btn-monthly-view");
-  const btnAnnual = document.getElementById("btn-annual-view");
-  const viewMonthly = document.getElementById("monthly-view");
-  const viewAnnual = document.getElementById("annual-view");
+  // 日付デフォルト（今日）
+  document.getElementById("form-date").value = new Date().toISOString().split("T")[0];
 
-  btnMonthly.onclick = () => {
-    btnMonthly.classList.add("active");
-    btnAnnual.classList.remove("active");
-    viewMonthly.classList.add("active");
-    viewAnnual.classList.remove("active");
-  };
+  // カテゴリー・名簿のドロップダウン設定
+  const catSelect = document.getElementById("form-category");
+  catSelect.innerHTML = "";
+  const categories = type === "expense" ? appState.rawData.expCategories : appState.rawData.incCategories;
+  categories.forEach(c => catSelect.add(new Option(c, c)));
 
-  btnAnnual.onclick = () => {
-    btnAnnual.classList.add("active");
-    btnMonthly.classList.remove("active");
-    viewAnnual.classList.add("active");
-    viewMonthly.classList.remove("active");
-    renderAnnualView();
-  };
+  const memSelect = document.getElementById("form-member");
+  memSelect.innerHTML = "";
+  appState.rawData.members.forEach(m => memSelect.add(new Option(m, m)));
 
-  document.getElementById("btn-open-budget").onclick = openBudgetModal;
-
-  const fabTrigger = document.getElementById("fab-trigger");
-  const fabMenu = document.getElementById("fab-menu");
-  
-  fabTrigger.onclick = () => {
-    fabTrigger.classList.toggle("active");
-    fabMenu.classList.toggle("active");
-  };
-
-  document.getElementById("form-expense").onsubmit = (e) => handleFormSubmit(e, "addExpense");
-  document.getElementById("form-income").onsubmit = (e) => handleFormSubmit(e, "addIncome");
-  document.getElementById("form-edit-category").onsubmit = (e) => handleFormSubmit(e, "updateCategory");
-  document.getElementById("form-budget").onsubmit = (e) => handleBudgetSubmit(e);
+  document.getElementById("transaction-modal").classList.remove("hidden");
 }
 
-function changeMonth(delta) {
-  state.currentDate.setMonth(state.currentDate.getMonth() + delta);
-  loadMonthData();
+function closeTransactionModal() {
+  document.getElementById("transaction-modal").classList.add("hidden");
+  document.getElementById("transaction-form").reset();
 }
 
-function initDefaultDates() {
-  const today = new Date().toISOString().split("T")[0];
-  document.querySelectorAll('input[type="date"]').forEach(input => input.value = today);
-}
-
-function populateSelectOptions() {
-  if (!state.configData) return;
-
-  const fill = (selectId, list) => {
-    const el = document.getElementById(selectId);
-    if (!el) return;
-    el.innerHTML = '<option value="" disabled selected>選択してください</option>';
-    if (Array.isArray(list)) {
-      list.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item;
-        opt.textContent = item;
-        el.appendChild(opt);
-      });
-    }
+function handleTransactionSubmit(e) {
+  e.preventDefault();
+  const type = document.getElementById("form-type").value;
+  const payload = {
+    date: document.getElementById("form-date").value,
+    category: document.getElementById("form-category").value,
+    amount: Number(document.getElementById("form-amount").value),
+    member: document.getElementById("form-member").value,
+    memo: document.getElementById("form-memo").value,
+    paymentMethod: document.getElementById("form-payment-method").value
   };
 
-  fill("select-expense-category", state.configData.expenseCategories);
-  fill("select-income-category", state.configData.incomeCategories);
-  fill("select-expense-name", state.configData.names);
-  fill("select-income-name", state.configData.names);
-  fill("edit-category-select", state.configData.expenseCategories);
+  closeTransactionModal();
+  sendPostData({
+    action: type === "expense" ? "addExpense" : "addIncome",
+    payload: payload
+  });
 }
-
-window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
-  populateSelectOptions();
-  
-  const form = document.getElementById("form-edit-category");
-  form.querySelector('input[name="sheetName"]').value = sheetName;
-  form.querySelector('input[name="rowIndex"]').value = rowIndex;
-  document.getElementById("edit-content-display").value = content;
-  
-  const select = document.getElementById("edit-category-select");
-  if (select) {
-    select.value = currentCategory;
-  }
-
-  document.getElementById("modal-backdrop").classList.add("active");
-  document.getElementById("modal-edit-category").classList.add("active");
-};
 
 function openBudgetModal() {
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth() + 1;
-  document.getElementById("budget-month-label").textContent = `${year}年${month}月`;
-
-  const container = document.getElementById("budget-input-list");
+  const container = document.getElementById("budget-inputs-container");
   container.innerHTML = "";
 
-  const categories = (state.configData && state.configData.expenseCategories) ? state.configData.expenseCategories : [];
-  
-  if (categories.length === 0) {
-    container.innerHTML = '<div style="text-align: center; color: var(--text-subtle); padding: 16px;">支出カテゴリーが読み込まれていません</div>';
-  } else {
-    categories.forEach(cat => {
-      const val = state.budgets[cat] !== undefined ? state.budgets[cat] : "";
-      const group = document.createElement("div");
-      group.className = "form-group";
-      group.innerHTML = `
-        <label class="form-label">${escapeHTML(cat)} の予算 (円)</label>
-        <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0" step="5000">
-      `;
-      container.appendChild(group);
-    });
-  }
+  appState.rawData.expCategories.forEach(cat => {
+    const val = appState.rawData.budgets[cat] || 0;
+    const div = document.createElement("div");
+    div.className = "form-group";
+    div.innerHTML = `
+      <label>${cat}</label>
+      <input type="number" class="budget-input-item" data-category="${cat}" value="${val}" min="0">
+    `;
+    container.appendChild(div);
+  });
 
-  document.getElementById("modal-backdrop").classList.add("active");
-  document.getElementById("modal-budget").classList.add("active");
+  // リアルタイム合計計算イベント
+  container.querySelectorAll(".budget-input-item").forEach(input => {
+    input.addEventListener("input", calcTotalBudgetPreview);
+  });
+
+  calcTotalBudgetPreview();
+  document.getElementById("budget-modal").classList.remove("hidden");
 }
 
-async function handleBudgetSubmit(e) {
+function calcTotalBudgetPreview() {
+  let sum = 0;
+  document.querySelectorAll(".budget-input-item").forEach(input => {
+    sum += Number(input.value) || 0;
+  });
+  document.getElementById("budget-total-sum").innerText = `¥${sum.toLocaleString()}`;
+}
+
+function handleBudgetSubmit(e) {
   e.preventDefault();
-  const form = e.target;
-  const formData = new FormData(form);
-  const budgetData = {};
+  const newBudgets = {};
+  document.querySelectorAll(".budget-input-item").forEach(input => {
+    newBudgets[input.dataset.category] = Number(input.value) || 0;
+  });
 
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth() + 1;
-  const targetYearMonth = `${year}/${String(month).padStart(2, '0')}`;
-
-  for (let [key, val] of formData.entries()) {
-    if (key.startsWith("budget_")) {
-      const cat = key.replace("budget_", "");
-      budgetData[cat] = Number(val) || 0;
-    }
-  }
-
-  const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
-  submitBtn.textContent = "保存中...";
-
-  await fetchAPI("saveBudgets", { yearMonth: targetYearMonth, budgets: budgetData });
-
-  closeModals();
-  submitBtn.disabled = false;
-  submitBtn.textContent = "予算を保存";
-
-  await loadMonthData();
-}
-
-window.openModal = (type) => {
-  document.getElementById("modal-backdrop").classList.add("active");
-  document.getElementById(`modal-${type}`).classList.add("active");
-  document.getElementById("fab-trigger").classList.remove("active");
-  document.getElementById("fab-menu").classList.remove("active");
-};
-
-window.closeModals = () => {
-  document.getElementById("modal-backdrop").classList.remove("active");
-  document.querySelectorAll(".modal-window").forEach(m => m.classList.remove("active"));
-};
-
-async function handleFormSubmit(e, action) {
-  e.preventDefault();
-  const form = e.target;
-  const formData = Object.fromEntries(new FormData(form).entries());
-
-  const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
-  submitBtn.textContent = "処理中...";
-
-  const success = await fetchAPI(action, formData);
-
-  if (success) {
-    form.reset();
-    initDefaultDates();
-    closeModals();
-    await loadMonthData();
-  }
-
-  submitBtn.disabled = false;
-  submitBtn.textContent = action === "updateCategory" ? "更新する" : "保存する";
-}
-
-function escapeHTML(str) {
-  return String(str).replace(/[&<>"']/g, match => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[match]));
+  document.getElementById("budget-modal").classList.add("hidden");
+  sendPostData({
+    action: "saveBudgetsData",
+    payload: newBudgets
+  });
 }
