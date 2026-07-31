@@ -2,7 +2,6 @@
 // App State & Configurations
 // ==========================================================================
 const CONFIG = {
-  // ★ デプロイしたGASのウェブアプリURLをここに記述してください ★
   GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
 };
 
@@ -145,7 +144,7 @@ function renderMonthlyView() {
           </div>
         </div>
         <div class="tx-right">
-          <!-- ★修正★ マイナス表記を取り払い、常にプラスの数値表示 -->
+          <!-- ★修正★ 支出も含め純粋な正の数値表示（マイナス表示完全排除） -->
           <div class="tx-amount ${tx.type}">
             ¥${amount.toLocaleString()}
           </div>
@@ -336,7 +335,6 @@ function initDefaultDates() {
   document.querySelectorAll('input[type="date"]').forEach(input => input.value = today);
 }
 
-// ★修正★ ドロップダウン選択肢の挿入ロジックを確実に構築
 function populateSelectOptions() {
   if (!state.configData) return;
 
@@ -361,7 +359,7 @@ function populateSelectOptions() {
   fill("edit-category-select", state.configData.expenseCategories);
 }
 
-// ★修正★ カテゴリー変更モーダルを正しく開く
+// ★修正★ カテゴリー変更モーダルを開く処理の改善
 window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
   populateSelectOptions();
   
@@ -379,7 +377,7 @@ window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) =
   document.getElementById("modal-edit-category").classList.add("active");
 };
 
-// ★修正★ 予算設定モーダルを確実に描画
+// ★修正★ 予算設定モーダル（step="5000" で5000円刻み調整可能）
 function openBudgetModal() {
   const year = state.currentDate.getFullYear();
   const month = state.currentDate.getMonth() + 1;
@@ -391,7 +389,7 @@ function openBudgetModal() {
   const categories = (state.configData && state.configData.expenseCategories) ? state.configData.expenseCategories : [];
   
   if (categories.length === 0) {
-    container.innerHTML = '<div style="text-align: center; color: var(--text-subtle); padding: 16px;">カテゴリーを読み込み中または未登録です</div>';
+    container.innerHTML = '<div style="text-align: center; color: var(--text-subtle); padding: 16px;">支出カテゴリーが読み込まれていません</div>';
   } else {
     categories.forEach(cat => {
       const val = state.budgets[cat] !== undefined ? state.budgets[cat] : "";
@@ -399,7 +397,8 @@ function openBudgetModal() {
       group.className = "form-group";
       group.innerHTML = `
         <label class="form-label">${escapeHTML(cat)} の予算 (円)</label>
-        <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0">
+        <!-- step="5000" で5,000円刻みの調整を可能に設定 -->
+        <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0" step="5000">
       `;
       container.appendChild(group);
     });
