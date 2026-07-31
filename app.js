@@ -3,7 +3,7 @@
 // ==========================================================================
 const CONFIG = {
   // デプロイしたGASのウェブアプリURLを貼り付けてください
-  GAS_URL: "YOUR_GAS_DEPLOYMENT_URL",
+  GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec",
   STORAGE_KEY: "kakeibo_token"
 };
 
