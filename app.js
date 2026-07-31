@@ -2,13 +2,11 @@
 // App State & Configurations
 // ==========================================================================
 const CONFIG = {
-  // デプロイしたGASのウェブアプリURLを貼り付けてください
-  GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec",
-  STORAGE_KEY: "kakeibo_token"
+  // デプロイしたGASのウェブアプリURLを設定してください
+  GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
 };
 
 let state = {
-  token: null,
   currentDate: new Date(),
   configData: null,
   transactions: []
@@ -21,50 +19,22 @@ let annualChartInstance = null;
 // Initialization
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", async () => {
-  initAuthentication();
   setupEventListeners();
   initDefaultDates();
   
-  // 順次実行で非同期通信の混線・誤エラーを防止
   await loadAppConfig();
   await loadMonthData();
 });
-
-// 認証・トークン管理
-function initAuthentication() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const tokenFromUrl = urlParams.get("token");
-
-  if (tokenFromUrl) {
-    state.token = tokenFromUrl;
-    localStorage.setItem(CONFIG.STORAGE_KEY, tokenFromUrl);
-    window.history.replaceState({}, document.title, window.location.pathname);
-  } else {
-    state.token = localStorage.getItem(CONFIG.STORAGE_KEY);
-  }
-
-  if (!state.token) {
-    const inputToken = prompt("アクセス用のセキュリティトークンを入力してください:");
-    if (inputToken) {
-      state.token = inputToken;
-      localStorage.setItem(CONFIG.STORAGE_KEY, inputToken);
-    } else {
-      alert("トークンがないためデータを同期できません。");
-    }
-  }
-}
 
 // ==========================================================================
 // API Communication Helper
 // ==========================================================================
 async function fetchAPI(action, payload = {}) {
-  if (!state.token) return null;
-
   try {
     const response = await fetch(CONFIG.GAS_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ token: state.token, action, ...payload })
+      body: JSON.stringify({ action, ...payload })
     });
 
     if (!response.ok) {
@@ -79,7 +49,7 @@ async function fetchAPI(action, payload = {}) {
   } catch (error) {
     console.error("API Fetch Error:", error);
     if (action !== "getConfig") {
-      alert("データの同期に失敗しました。ネットワーク状況または設定を確認してください。");
+      alert("通信エラーが発生しました。GASのURLを確認してください。");
     }
     return null;
   }
