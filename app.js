@@ -59,7 +59,8 @@ async function loadMonthData() {
   const month = state.currentDate.getMonth() + 1;
   document.getElementById("month-display").textContent = `${year}年 ${month}月`;
   
-  document.getElementById("transaction-list").innerHTML = "<p style='text-align:center;'>読み込み中...</p>";
+  const listEl = document.getElementById("transaction-list");
+  listEl.innerHTML = "<div style='text-align:center; padding: 48px; color: #5f6368;'>読み込み中...</div>";
   
   state.transactions = await apiCall("getData", { year, month }) || [];
   renderList();
@@ -93,7 +94,7 @@ function renderList() {
     listEl.appendChild(div);
   });
 
-  if (state.transactions.length === 0) listEl.innerHTML = "<p style='text-align:center; color:#999;'>データがありません</p>";
+  if (state.transactions.length === 0) listEl.innerHTML = "<p style='text-align:center; color:#999; padding: 48px;'>データがありません</p>";
 
   document.getElementById("sum-income").textContent = `¥${sumInc.toLocaleString()}`;
   document.getElementById("sum-expense").textContent = `¥${sumExp.toLocaleString()}`;
@@ -134,8 +135,9 @@ function changeMonth(delta) {
 
 function setDefaultDates() {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  document.querySelector('#expense-form input[name="date"]').value = today;
-  document.querySelector('#income-form input[name="date"]').value = today;
+  document.querySelectorAll('form input[name="date"]').forEach(input => {
+    input.value = today;
+  });
 }
 
 function populateDropdowns() {
@@ -183,7 +185,7 @@ async function handleFormSubmit(e, action) {
   form.reset();
   setDefaultDates();
   closeModals();
-  submitBtn.disabled = false; submitBtn.textContent = "登録";
+  submitBtn.disabled = false; submitBtn.textContent = "登録する";
   
   loadMonthData(); // 再読み込み
 }
@@ -194,6 +196,7 @@ async function handleFormSubmit(e, action) {
 let chartInstance = null;
 function renderChart() {
   const ctx = document.getElementById("annual-chart");
+  if (!ctx || !document.getElementById("annual-view").classList.contains("active")) return;
   if (chartInstance) chartInstance.destroy();
   
   // 表示中の月のカテゴリー別支出を集計
@@ -203,18 +206,31 @@ function renderChart() {
     categories[t.category] = (categories[t.category] || 0) + Number(t.amount);
   });
 
-  chartInstance = new Chart(ctx, {
+  const categoryNames = Object.keys(categories);
+  if (categoryNames.length === 0) {
+    if (chartInstance) chartInstance.destroy();
+    document.querySelector('.chart-container').innerHTML = "<p style='text-align:center; padding: 48px; color:#999;'>データがありません</p>";
+    return;
+  } else {
+    // グラフを再配置
+     document.querySelector('.chart-container').innerHTML = '<canvas id="annual-chart"></canvas>';
+  }
+
+  chartInstance = new Chart(document.getElementById("annual-chart"), {
     type: 'doughnut',
     data: {
-      labels: Object.keys(categories),
+      labels: categoryNames,
       datasets: [{
         data: Object.values(categories),
-        backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#06b6d4', '#3b82f6', '#8b5cf6']
+        backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#06b6d4', '#3b82f6', '#8b5cf6'],
+        borderWidth: 2,
+        borderColor: '#fff'
       }]
     },
     options: {
       responsive: true,
-      plugins: { legend: { position: 'bottom' }, title: { display: true, text: '今月のカテゴリー別支出' } }
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } }, title: { display: false } }
     }
   });
 }
