@@ -5,14 +5,36 @@ const CONFIG = {
   GAS_URL: "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec"
 };
 
+// 固定カラーパレット（カテゴリー毎に一貫した色を付与）
+const COLOR_PALETTE = [
+  "#635bff", "#00d4b6", "#ff5b60", "#ffc01e", "#f77238", "#a5a6f6", "#0a2540", "#20c997", "#e83e8c"
+];
+
 let state = {
   currentDate: new Date(),
   configData: null,
-  transactions: []
+  transactions: [],
+  budgets: {} // { "食費": 50000, "日用品": 10000 }
 };
 
 let monthlyChartInstance = null;
 let annualChartInstance = null;
+
+// カテゴリーごとの一貫したカラーマップ生成
+function getCategoryColor(category) {
+  if (!category) return "#8898aa";
+  const categories = state.configData ? state.configData.expenseCategories : [];
+  const index = categories.indexOf(category);
+  if (index !== -1) {
+    return COLOR_PALETTE[index % COLOR_PALETTE.length];
+  }
+  // ハッシュ計算による色決定
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = category.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
+}
 
 // ==========================================================================
 // Initialization
@@ -72,8 +94,9 @@ async function loadMonthData() {
   document.getElementById("month-display").textContent = `${year}年 ${month}月`;
   document.getElementById("transaction-list").innerHTML = '<div style="padding: 32px; text-align: center; color: var(--text-subtle);">データを読み込み中...</div>';
 
-  const data = await fetchAPI("getData", { year, month });
-  state.transactions = data || [];
+  const res = await fetchAPI("getData", { year, month });
+  state.transactions = res ? res.transactions : [];
+  state.budgets = res ? res.budgets : {};
   
   renderMonthlyView();
   renderAnnualView();
@@ -98,6 +121,7 @@ function renderMonthlyView() {
 
       const dateObj = new Date(tx.date);
       const dateFormatted = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+      const badgeColor = tx.type === "income" ? "var(--income-color)" : getCategoryColor(tx.category);
 
       const row = document.createElement("div");
       row.className = "tx-row";
@@ -110,7 +134,9 @@ function renderMonthlyView() {
 
       row.innerHTML = `
         <div class="tx-left">
-          <div class="tx-category-badge">${tx.category ? tx.category.slice(0, 2) : "他"}</div>
+          <div class="tx-category-badge" style="background-color: ${badgeColor};">
+            ${tx.category ? tx.category.slice(0, 2) : "収入"}
+          </div>
           <div class="tx-details">
             <span class="tx-title">${escapeHTML(tx.content || tx.category)}</span>
             <span class="tx-sub">${dateFormatted} ${tx.payment ? `• ${tx.payment}` : ''} ${tx.name ? `• ${tx.name}` : ''}</span>
@@ -138,57 +164,70 @@ function renderMonthlyView() {
   renderMonthlyChart();
 }
 
-// 横棒グラフ化
+// 縦軸：金額、横軸：カテゴリー（縦棒グラフ ＋ 予算目印ライン）
 function renderMonthlyChart() {
   const expenses = state.transactions.filter(t => t.type === "expense");
   const categoryMap = {};
+
+  // 全カテゴリーを初期化
+  if (state.configData && state.configData.expenseCategories) {
+    state.configData.expenseCategories.forEach(cat => categoryMap[cat] = 0);
+  }
 
   expenses.forEach(t => {
     const cat = t.category || "未分類";
     categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
   });
 
-  // 金額が高い順にソート
-  const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
-  const labels = sortedCategories.map(item => item[0]);
-  const values = sortedCategories.map(item => item[1]);
+  const labels = Object.keys(categoryMap);
+  const actualValues = labels.map(cat => categoryMap[cat]);
+  const budgetValues = labels.map(cat => state.budgets[cat] || 0);
+  const backgroundColors = labels.map(cat => getCategoryColor(cat));
 
   const ctx = document.getElementById("monthly-category-chart");
   if (monthlyChartInstance) monthlyChartInstance.destroy();
-
-  if (labels.length === 0) {
-    ctx.style.display = "none";
-    return;
-  }
-  ctx.style.display = "block";
 
   monthlyChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
       labels: labels,
-      datasets: [{
-        label: "支出額 (円)",
-        data: values,
-        backgroundColor: "#635bff",
-        borderRadius: 6
-      }]
+      datasets: [
+        {
+          label: "支出額 (円)",
+          data: actualValues,
+          backgroundColor: backgroundColors,
+          borderRadius: 6,
+          order: 2
+        },
+        {
+          label: "予算 (円)",
+          data: budgetValues,
+          type: "line",
+          borderColor: "#ff5b60",
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointBackgroundColor: "#ff5b60",
+          pointRadius: 4,
+          fill: false,
+          order: 1
+        }
+      ]
     },
     options: {
-      indexAxis: 'y', // 横棒グラフ
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false }
+        legend: { position: "top", labels: { usePointStyle: true } }
       },
       scales: {
-        x: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } }
+        x: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } },
+        y: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } }, beginAtZero: true }
       }
     }
   });
 }
 
-// 横棒グラフ化
+// 年間縦棒グラフ
 function renderAnnualView() {
   const expenses = state.transactions.filter(t => t.type === "expense");
   const categoryMap = {};
@@ -198,9 +237,9 @@ function renderAnnualView() {
     categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
   });
 
-  const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
-  const labels = sortedCategories.map(item => item[0]);
-  const values = sortedCategories.map(item => item[1]);
+  const labels = Object.keys(categoryMap);
+  const values = Object.values(categoryMap);
+  const backgroundColors = labels.map(cat => getCategoryColor(cat));
 
   const breakdownContainer = document.getElementById("category-breakdown");
   breakdownContainer.innerHTML = "";
@@ -209,7 +248,10 @@ function renderAnnualView() {
     const item = document.createElement("div");
     item.className = "breakdown-item";
     item.innerHTML = `
-      <span style="font-weight: 600;">${escapeHTML(cat)}</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background-color: ${backgroundColors[i]}; display: inline-block;"></span>
+        <span style="font-weight: 600;">${escapeHTML(cat)}</span>
+      </div>
       <span style="font-weight: 700;">¥${values[i].toLocaleString()}</span>
     `;
     breakdownContainer.appendChild(item);
@@ -218,29 +260,26 @@ function renderAnnualView() {
   const ctx = document.getElementById("category-chart");
   if (annualChartInstance) annualChartInstance.destroy();
 
-  if (labels.length === 0) return;
-
   annualChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
       labels: labels,
       datasets: [{
-        label: "支出額 (円)",
+        label: "年間支出額 (円)",
         data: values,
-        backgroundColor: "#635bff",
+        backgroundColor: backgroundColors,
         borderRadius: 6
       }]
     },
     options: {
-      indexAxis: 'y', // 横棒グラフ
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } }
+        x: { grid: { display: false }, ticks: { font: { size: 12, weight: "bold" } } },
+        y: { grid: { color: "#e6ebf1" }, ticks: { font: { size: 11 } }, beginAtZero: true }
       }
     }
   });
@@ -273,6 +312,8 @@ function setupEventListeners() {
     renderAnnualView();
   };
 
+  document.getElementById("btn-open-budget").onclick = openBudgetModal;
+
   const fabTrigger = document.getElementById("fab-trigger");
   const fabMenu = document.getElementById("fab-menu");
   
@@ -284,6 +325,7 @@ function setupEventListeners() {
   document.getElementById("form-expense").onsubmit = (e) => handleFormSubmit(e, "addExpense");
   document.getElementById("form-income").onsubmit = (e) => handleFormSubmit(e, "addIncome");
   document.getElementById("form-edit-category").onsubmit = (e) => handleFormSubmit(e, "updateCategory");
+  document.getElementById("form-budget").onsubmit = (e) => handleBudgetSubmit(e);
 }
 
 function changeMonth(delta) {
@@ -301,7 +343,8 @@ function populateSelectOptions() {
 
   const fillSelect = (selector, list) => {
     const el = document.querySelector(selector);
-    el.innerHTML = '<option value="" disabled selected>選択</option>';
+    if (!el) return;
+    el.innerHTML = '<option value="" disabled selected>選択してください</option>';
     list.forEach(item => {
       const opt = document.createElement("option");
       opt.value = item;
@@ -317,19 +360,76 @@ function populateSelectOptions() {
   fillSelect('#edit-category-select', state.configData.expenseCategories);
 }
 
-// カテゴリー編集モーダルを開く
+// カテゴリー編集モーダル
 window.openEditCategoryModal = (sheetName, rowIndex, content, currentCategory) => {
   const form = document.getElementById("form-edit-category");
   form.querySelector('input[name="sheetName"]').value = sheetName;
   form.querySelector('input[name="rowIndex"]').value = rowIndex;
   document.getElementById("edit-content-display").value = content;
   
+  // 選択肢の再構築・選択状態適用
+  populateSelectOptions();
   const select = document.getElementById("edit-category-select");
   select.value = currentCategory;
 
   document.getElementById("modal-backdrop").classList.add("active");
   document.getElementById("modal-edit-category").classList.add("active");
 };
+
+// 予算設定モーダル
+function openBudgetModal() {
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth() + 1;
+  document.getElementById("budget-month-label").textContent = `${year}年${month}月`;
+
+  const container = document.getElementById("budget-input-list");
+  container.innerHTML = "";
+
+  const categories = state.configData ? state.configData.expenseCategories : [];
+  categories.forEach(cat => {
+    const val = state.budgets[cat] || "";
+    const group = document.createElement("div");
+    group.className = "form-group";
+    group.innerHTML = `
+      <label class="form-label">${escapeHTML(cat)} の予算 (円)</label>
+      <input type="number" name="budget_${escapeHTML(cat)}" class="form-input" placeholder="0" value="${val}" min="0">
+    `;
+    container.appendChild(group);
+  });
+
+  document.getElementById("modal-backdrop").classList.add("active");
+  document.getElementById("modal-budget").classList.add("active");
+}
+
+async function handleBudgetSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  const budgetData = {};
+
+  const year = state.currentDate.getFullYear();
+  const month = state.currentDate.getMonth() + 1;
+  const targetYearMonth = `${year}/${String(month).padStart(2, '0')}`;
+
+  for (let [key, val] of formData.entries()) {
+    if (key.startsWith("budget_")) {
+      const cat = key.replace("budget_", "");
+      budgetData[cat] = Number(val) || 0;
+    }
+  }
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = "保存中...";
+
+  await fetchAPI("saveBudgets", { yearMonth: targetYearMonth, budgets: budgetData });
+
+  closeModals();
+  submitBtn.disabled = false;
+  submitBtn.textContent = "予算を保存";
+
+  await loadMonthData();
+}
 
 window.openModal = (type) => {
   document.getElementById("modal-backdrop").classList.add("active");
@@ -350,7 +450,7 @@ async function handleFormSubmit(e, action) {
 
   const submitBtn = form.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
-  submitBtn.textContent = "更新中...";
+  submitBtn.textContent = "処理中...";
 
   const success = await fetchAPI(action, formData);
 
