@@ -1,5 +1,5 @@
 // 設定: GASのWebアプリURLを入力してください
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec";
+const GAS_API_URL = "YOUR_GAS_WEB_APP_URL_HERE";
 
 let currentYM = new Date().toISOString().slice(0, 7); // YYYY-MM
 let globalCategories = {};
@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData();
 });
 
+// 認証初期化
 function initAuth() {
   const urlParams = new URLSearchParams(window.location.search);
   const tokenFromUrl = urlParams.get('token');
@@ -27,6 +28,7 @@ function initAuth() {
   }
 }
 
+// データ読み込み
 async function loadData() {
   const token = localStorage.getItem('app_token');
   if (!token) return;
@@ -55,17 +57,19 @@ async function loadData() {
   }
 }
 
+// ダッシュボード全体の描画
 function renderDashboard(data) {
+  // AMEXと現金等の両方を合算して支出とする
   const expenses = [...data.amex, ...data.cash];
-  const totalExp = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const totalInc = data.income.reduce((sum, item) => sum + item.amount, 0);
-  const totalSav = [...data.savings, ...data.investment].reduce((sum, item) => sum + item.amount, 0);
+  const totalExp = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalInc = data.income.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalSav = [...data.savings, ...data.investment].reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
   document.getElementById('total-expense').textContent = `¥${totalExp.toLocaleString()}`;
   document.getElementById('total-income').textContent = `¥${totalInc.toLocaleString()}`;
   document.getElementById('total-savings').textContent = `¥${totalSav.toLocaleString()}`;
 
-  // 1. 明細リストの描画
+  // 明細リストの描画
   const allRecords = [
     ...expenses.map(i => ({ ...i, type: '支出' })),
     ...data.income.map(i => ({ ...i, type: '収入' })),
@@ -81,40 +85,48 @@ function renderDashboard(data) {
     el.className = 'data-item';
     el.innerHTML = `
       <div class="info">
-        <div class="title">${item.category} <span style="font-size:0.75rem; font-weight:normal; color:#666;">(${item.person})</span></div>
+        <div class="title">${item.category || '未分類'} <span style="font-size:0.75rem; font-weight:normal; color:#666;">(${item.person || '家計'})</span></div>
         <div class="sub">${item.date} | ${item.memo || ''} ${item.paymentMethod ? '[' + item.paymentMethod + ']' : ''}</div>
       </div>
       <div class="amount" style="color: ${getItemColor(item.type)}">
-        ${item.type === '支出' ? '-' : '+'}¥${item.amount.toLocaleString()}
+        ${item.type === '支出' ? '-' : '+'}¥${Number(item.amount || 0).toLocaleString()}
       </div>
     `;
     listContainer.appendChild(el);
   });
 
-  // 2. グラフ描画
+  // グラフを描画
   renderChart(expenses);
 }
 
-// カテゴリー別支出グラフ描画関数
+// カテゴリー別支出グラフ描画関数（エラー対策版）
 function renderChart(expenses) {
-  // カテゴリーごとの金額を集計
   const categoryTotals = {};
+
   expenses.forEach(item => {
-    categoryTotals[item.category] = (categoryTotals[item.category] || 0) + item.amount;
+    const cat = item.category ? String(item.category).trim() : '未分類';
+    const amount = Number(item.amount) || 0;
+
+    if (amount > 0) {
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + amount;
+    }
   });
 
   const labels = Object.keys(categoryTotals);
   const dataValues = Object.values(categoryTotals);
 
-  const ctx = document.getElementById('expenseChart').getContext('2d');
+  const canvas = document.getElementById('expenseChart');
+  if (!canvas) return;
 
-  // 既にグラフが存在する場合は破棄して再描画
+  const ctx = canvas.getContext('2d');
+
+  // 既存のグラフインスタンスを破棄
   if (chartInstance) {
     chartInstance.destroy();
+    chartInstance = null;
   }
 
   if (labels.length === 0) {
-    // データがない場合の表示
     return;
   }
 
