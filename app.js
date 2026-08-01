@@ -1,5 +1,5 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec";
-const CACHE_KEY = "kakeibo_local_data_v1";
+const CACHE_KEY = "kakeibo_local_data_v2";
 
 let appState = {
   currentDate: new Date(),
@@ -23,43 +23,57 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
   
-  // 1. 【最重要】まずローカルキャッシュから0.1秒で即座に描画
-  loadLocalCacheAndRender();
+  // 1. キャッシュが存在すれば0.01秒で超即時表示
+  const hasCache = loadLocalCacheAndRender();
 
-  // 2. 裏でGASから最新データを取得し、バックグラウンド更新
+  // 2. キャッシュがない場合でもスケルトン状態を即時描画
+  if (!hasCache) {
+    renderAppSkeleton();
+  }
+
+  // 3. 超高速データ取得APIを実行（初回1~2秒）
   syncWithGAS();
 
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
 });
 
-// キャッシュを読み込んで0.01秒で描画
 function loadLocalCacheAndRender() {
   const cached = localStorage.getItem(CACHE_KEY);
   if (cached) {
     try {
       appState.rawData = JSON.parse(cached);
       renderApp();
+      return true;
     } catch (e) {
-      console.error("キャッシュ読み込み失敗:", e);
+      console.error("キャッシュエラー:", e);
     }
   }
+  return false;
 }
 
-// 状態を変更するたびにローカルキャッシュに即座に保存
 function saveLocalCache() {
   localStorage.setItem(CACHE_KEY, JSON.stringify(appState.rawData));
 }
 
-// バックグラウンドでGASから最新データを取得して更新
+// 初回ロード用のスケルトン画面表示
+function renderAppSkeleton() {
+  const y = appState.currentDate.getFullYear();
+  const m = String(appState.currentDate.getMonth() + 1).padStart(2, '0');
+  document.querySelectorAll(".month-display").forEach(el => el.innerText = `${y}年${parseInt(m)}月`);
+  
+  const grid = document.getElementById("category-budget-grid");
+  grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 2rem;">データを読み込んでいます...</div>`;
+}
+
 function syncWithGAS() {
   const callbackName = "gasCallback_" + Date.now();
   
   window[callbackName] = function(response) {
     if (response.status === "success") {
       appState.rawData = response.data;
-      saveLocalCache(); // キャッシュ更新
-      renderApp();      // 最新データでサイレント再描画
+      saveLocalCache();
+      renderApp(); // データ受信後、即座に実データを描画
     }
     delete window[callbackName];
     if (script && script.parentNode) script.parentNode.removeChild(script);
@@ -70,7 +84,6 @@ function syncWithGAS() {
   document.body.appendChild(script);
 }
 
-// バックグラウンド通信用 POST
 async function sendPostDataBackground(payload, callbackOnSuccess) {
   try {
     const response = await fetch(GAS_URL, {
@@ -138,7 +151,7 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// 1. ダッシュボード描画
+// ダッシュボード描画
 function renderDashboardGrid(mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -184,7 +197,6 @@ function renderDashboardGrid(mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
-// 2. 人ごとの収入描画
 function renderMemberIncome(mIncomes) {
   const container = document.getElementById("member-income-container");
   container.innerHTML = "";
@@ -209,7 +221,6 @@ function renderMemberIncome(mIncomes) {
   });
 }
 
-// 3. 支出一覧描画
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
   container.innerHTML = "";
@@ -245,7 +256,6 @@ function renderExpenseList(mExpenses) {
   });
 }
 
-// 4. 収入一覧描画
 function renderIncomeList(mIncomes) {
   const container = document.getElementById("income-list-container");
   container.innerHTML = "";
@@ -281,7 +291,6 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// 5. カテゴリー・予算管理描画
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -342,10 +351,6 @@ function renderCategoryManageList() {
     incContainer.appendChild(row);
   });
 }
-
-// -----------------------------------------------------------------------------
-// 高速・即時反映（楽観的UI）アクション処理
-// -----------------------------------------------------------------------------
 
 function updateCategory(itemId, newCategory) {
   let item = appState.rawData.expenses.find(e => e.id === itemId) || appState.rawData.incomes.find(i => i.id === itemId);
