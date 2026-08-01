@@ -3,150 +3,177 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>家計簿 DashBoard</title>
+  <title>KAKEIBO</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- SVG Symbol Definition -->
-  <svg style="display: none;">
-    <symbol id="icon-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></symbol>
-    <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></symbol>
-    <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
-    <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></symbol>
-  </svg>
 
+  <!-- Top Header Navigation -->
   <header class="app-header">
-    <div class="header-container">
-      <h1 class="logo">FinanceApp</h1>
-      <nav class="view-switch">
-        <button id="btn-view-month" class="nav-btn active">月別表示</button>
-        <button id="btn-view-year" class="nav-btn">年別推移</button>
-        <button id="btn-open-budget" class="icon-btn" title="予算設定">
-          <svg class="icon"><use href="#icon-settings"></use></svg>
+    <div class="header-inner">
+      <div class="brand-logo">KAKEIBO</div>
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="dashboard">
+          <svg class="tab-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          ダッシュボード
+        </button>
+        <button class="tab-btn" data-tab="expense">
+          <svg class="tab-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.11 0-2 .89-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 16H5V7h14v12zm-2-7H7v-2h10v2z"/></svg>
+          支出
+        </button>
+        <button class="tab-btn" data-tab="income">
+          <svg class="tab-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+          収入
+        </button>
+        <button class="tab-btn" data-tab="categories">
+          <svg class="tab-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
+          カテゴリー・予算
         </button>
       </nav>
     </div>
   </header>
 
-  <main class="main-content">
-    <!-- ナビゲーションバー -->
-    <div class="date-navigator">
-      <button id="btn-prev" class="icon-btn">
-        <svg class="icon"><use href="#icon-chevron-left"></use></svg>
-      </button>
-      <h2 id="current-period-title" class="period-title">----年--月</h2>
-      <button id="btn-next" class="icon-btn">
-        <svg class="icon"><use href="#icon-chevron-right"></use></svg>
-      </button>
-    </div>
+  <main class="main-container">
 
-    <!-- サマリーカード -->
-    <section class="summary-grid">
-      <div class="card summary-card income">
-        <span class="card-label">総収入</span>
-        <span id="summary-income" class="card-value">¥0</span>
-      </div>
-      <div class="card summary-card expense">
-        <span class="card-label">総支出</span>
-        <span id="summary-expense" class="card-value">¥0</span>
-      </div>
-      <div class="card summary-card balance">
-        <span class="card-label">収支差額</span>
-        <span id="summary-balance" class="card-value">¥0</span>
-      </div>
-      <div class="card summary-card budget">
-        <span class="card-label">予算残り</span>
-        <span id="summary-budget-diff" class="card-value">¥0</span>
-      </div>
-    </section>
-
-    <!-- メイン表示領域（月別） -->
-    <section id="view-month-section" class="dashboard-section">
-      <div class="card chart-container">
-        <h3>カテゴリー別支出 vs 予算</h3>
-        <div class="canvas-wrapper">
-          <canvas id="expenseChart"></canvas>
+    <!-- View 1: ダッシュボード -->
+    <section id="view-dashboard" class="tab-content active">
+      <div class="section-header">
+        <div>
+          <span class="sub-title">MONTHLY OVERVIEW</span>
+          <h1 class="main-title">今月のくらし</h1>
+        </div>
+        <div class="month-selector">
+          <button id="btn-prev-month" class="arrow-btn">&lt;</button>
+          <span id="label-current-month" class="month-display">2026年8月</span>
+          <button id="btn-next-month" class="arrow-btn">&gt;</button>
         </div>
       </div>
-    </section>
 
-    <!-- メイン表示領域（年別） -->
-    <section id="view-year-section" class="dashboard-section hidden">
-      <div class="card chart-container">
-        <h3>年間収支推移</h3>
-        <div class="canvas-wrapper">
-          <canvas id="yearChart"></canvas>
+      <!-- サマリーカード -->
+      <div class="summary-cards">
+        <div class="card summary-box">
+          <span class="card-caption">収入</span>
+          <div id="sum-income" class="amount-val">¥0</div>
+        </div>
+        <div class="card summary-box">
+          <span class="card-caption">支出</span>
+          <div id="sum-expense" class="amount-val">¥0</div>
+        </div>
+        <div class="card summary-box">
+          <span class="card-caption">収支</span>
+          <div id="sum-balance" class="amount-val">¥0</div>
         </div>
       </div>
+
+      <div class="dashboard-subhead">
+        <h2>カテゴリー別の支出と予算</h2>
+        <span class="budget-total-text">予算合計 <strong id="sum-total-budget">¥0</strong></span>
+      </div>
+
+      <!-- カテゴリー予算グリッド -->
+      <div id="category-budget-grid" class="category-grid"></div>
     </section>
+
+    <!-- View 2: 支出一覧 -->
+    <section id="view-expense" class="tab-content">
+      <div class="section-header">
+        <div>
+          <span class="sub-title">EXPENSES</span>
+          <h1 class="main-title">支出</h1>
+        </div>
+        <div class="action-toolbar">
+          <button class="btn btn-secondary" onclick="openExpenseModal()">+ 現金などを手入力</button>
+        </div>
+      </div>
+
+      <div class="list-filter-bar">
+        <div class="month-selector">
+          <button class="arrow-btn" onclick="changeMonth(-1)">&lt;</button>
+          <span class="month-display current-month-text">2026年8月</span>
+          <button class="arrow-btn" onclick="changeMonth(1)">&gt;</button>
+        </div>
+        <div class="list-stats" id="expense-stats">0件 / ¥0</div>
+      </div>
+
+      <div id="expense-list-container" class="item-list"></div>
+    </section>
+
+    <!-- View 3: 収入一覧 -->
+    <section id="view-income" class="tab-content">
+      <div class="section-header">
+        <div>
+          <span class="sub-title">INCOME</span>
+          <h1 class="main-title">収入</h1>
+        </div>
+        <div class="action-toolbar">
+          <button class="btn btn-primary" onclick="openIncomeModal()">+ 収入を追加</button>
+        </div>
+      </div>
+
+      <div class="list-filter-bar">
+        <div class="month-selector">
+          <button class="arrow-btn" onclick="changeMonth(-1)">&lt;</button>
+          <span class="month-display current-month-text">2026年8月</span>
+          <button class="arrow-btn" onclick="changeMonth(1)">&gt;</button>
+        </div>
+        <div class="list-stats" id="income-stats">0件 / ¥0</div>
+      </div>
+
+      <div id="income-list-container" class="item-list"></div>
+    </section>
+
+    <!-- View 4: カテゴリー・予算管理 -->
+    <section id="view-categories" class="tab-content">
+      <div class="section-header">
+        <div>
+          <span class="sub-title">CATEGORIES</span>
+          <h1 class="main-title">カテゴリー・予算</h1>
+        </div>
+      </div>
+
+      <div class="card add-category-card">
+        <form id="form-add-category" class="inline-form">
+          <select id="new-cat-type" class="form-control">
+            <option value="支出">支出</option>
+            <option value="収入">収入</option>
+          </select>
+          <input type="text" id="new-cat-name" class="form-control" placeholder="カテゴリー名" required>
+          <input type="number" id="new-cat-budget" class="form-control" placeholder="月の予算">
+          <button type="submit" class="btn btn-primary">+ 追加</button>
+        </form>
+      </div>
+
+      <h2 class="subhead-title">支出カテゴリー</h2>
+      <div id="exp-category-manage-list" class="item-list"></div>
+    </section>
+
   </main>
 
-  <!-- 浮遊型アクションボタン (FAB) -->
-  <div class="fab-wrapper" id="fab-wrapper">
-    <div class="fab-menu" id="fab-menu">
-      <button class="fab-item expense" id="btn-open-expense">+ 支出登録</button>
-      <button class="fab-item income" id="btn-open-income">+ 収入登録</button>
-    </div>
-    <button class="fab-main" id="fab-main">
-      <svg class="icon"><use href="#icon-plus"></use></svg>
-    </button>
-  </div>
-
-  <!-- Modal: 支出/収入登録 -->
-  <div class="modal-overlay hidden" id="transaction-modal">
+  <!-- Modal: 手入力モーダル -->
+  <div id="modal-transaction" class="modal-overlay hidden">
     <div class="modal-card">
-      <h3 id="modal-title">収支の登録</h3>
-      <form id="transaction-form">
-        <input type="hidden" id="form-type" value="expense">
+      <h3 id="modal-tx-title">データ入力</h3>
+      <form id="form-transaction">
+        <input type="hidden" id="tx-type" value="expense">
         <div class="form-group">
           <label>日付</label>
-          <input type="date" id="form-date" required>
+          <input type="date" id="tx-date" class="form-control" required>
         </div>
         <div class="form-group">
           <label>カテゴリー</label>
-          <select id="form-category" required></select>
+          <select id="tx-category" class="form-control" required></select>
         </div>
         <div class="form-group">
           <label>金額</label>
-          <input type="number" id="form-amount" min="1" placeholder="0" required>
-        </div>
-        <div class="form-group" id="group-payment-method">
-          <label>支払方法</label>
-          <select id="form-payment-method">
-            <option value="AMEX">AMEX</option>
-            <option value="現金等">現金等</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>名簿（対象者）</label>
-          <select id="form-member"></select>
+          <input type="number" id="tx-amount" class="form-control" placeholder="0" required>
         </div>
         <div class="form-group">
           <label>内容 / 備考</label>
-          <input type="text" id="form-memo" placeholder="メモを入力">
+          <input type="text" id="tx-memo" class="form-control" placeholder="例: トイレットペーパー">
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="btn-close-modal">キャンセル</button>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeTxModal()">キャンセル</button>
           <button type="submit" class="btn btn-primary">保存</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: 予算設定 -->
-  <div class="modal-overlay hidden" id="budget-modal">
-    <div class="modal-card">
-      <h3>月間予算の設定</h3>
-      <form id="budget-form">
-        <div id="budget-inputs-container" class="budget-inputs-list"></div>
-        <div class="budget-total-preview">
-          合計予算: <span id="budget-total-sum">¥0</span>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="btn-close-budget-modal">キャンセル</button>
-          <button type="submit" class="btn btn-primary">予算を保存</button>
         </div>
       </form>
     </div>
