@@ -25,7 +25,7 @@ body {
   padding-bottom: 60px;
 }
 
-/* Header & Nav */
+/* Header & Navigation */
 .app-header {
   background: var(--card-bg);
   border-bottom: 1px solid var(--border-color);
@@ -76,7 +76,7 @@ body {
   height: 16px;
 }
 
-/* Layout */
+/* Main Layout */
 .main-container {
   max-width: 1100px;
   margin: 2rem auto;
@@ -154,12 +154,17 @@ body {
   align-items: center;
   margin-bottom: 1.25rem;
 }
+.subhead-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
 .budget-total-text {
   font-size: 0.875rem;
   color: var(--text-muted);
 }
 
-/* Category Grid */
+/* Category Grid & Progress Bar */
 .category-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -190,20 +195,47 @@ body {
   height: 10px;
   border-radius: 50%;
 }
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: #f0eee9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
 .cat-footer {
   display: flex;
   justify-content: space-between;
   font-size: 0.85rem;
   color: var(--text-muted);
-  border-top: 1px solid #f7f5f0;
-  padding-top: 0.5rem;
 }
 .remaining-val {
   color: var(--accent-green);
   font-weight: 600;
 }
 
-/* List Items */
+/* Member Income Card */
+.member-income-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.member-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* Lists */
 .list-filter-bar {
   display: flex;
   justify-content: space-between;
@@ -242,6 +274,11 @@ body {
 .row-memo {
   font-weight: 500;
 }
+.row-submemo {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+}
 .row-right {
   display: flex;
   align-items: center;
@@ -268,7 +305,7 @@ body {
   font-size: 1.1rem;
 }
 
-/* Buttons & Inputs */
+/* Form & Buttons */
 .btn {
   padding: 0.6rem 1.25rem;
   border-radius: var(--radius-pill);
