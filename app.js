@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
 });
 
-// JSONP 通信（CORS完全回避）
+// JSONP 通信 (初回起動時のみ実行)
 function fetchInitialData() {
   const callbackName = "gasCallback_" + Date.now();
   
@@ -47,8 +47,8 @@ function fetchInitialData() {
   document.body.appendChild(script);
 }
 
-// POST データ送信 (redirect: "follow")
-async function sendPostData(payload) {
+// バックグラウンド同期用 POST (再読み込みは行わない)
+async function sendPostDataBackground(payload, callbackOnSuccess) {
   try {
     const response = await fetch(GAS_URL, {
       method: "POST",
@@ -57,13 +57,11 @@ async function sendPostData(payload) {
       body: JSON.stringify(payload)
     });
     const result = await response.json();
-    if (result.status === "success") {
-      fetchInitialData();
-    } else {
-      alert("保存エラー: " + result.message);
+    if (result.status === "success" && callbackOnSuccess) {
+      callbackOnSuccess(result);
     }
   } catch (err) {
-    alert("通信エラーが発生しました");
+    console.error("同期エラー:", err);
   }
 }
 
@@ -103,7 +101,6 @@ function renderApp() {
   const mExpenses = appState.rawData.expenses.filter(e => e.date && e.date.startsWith(prefix));
   const mIncomes = appState.rawData.incomes.filter(i => i.date && i.date.startsWith(prefix));
 
-  // 収支集計
   const totalExp = mExpenses.reduce((s, item) => s + item.amount, 0);
   const totalInc = mIncomes.reduce((s, item) => s + item.amount, 0);
 
@@ -118,7 +115,7 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// 1. ダッシュボード画面の描画 (プログレスバー付き)
+// 1. ダッシュボード描画
 function renderDashboardGrid(mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -164,7 +161,7 @@ function renderDashboardGrid(mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
-// 2. 人ごとの収入の描画
+// 2. 人ごとの収入描画
 function renderMemberIncome(mIncomes) {
   const container = document.getElementById("member-income-container");
   container.innerHTML = "";
@@ -189,7 +186,7 @@ function renderMemberIncome(mIncomes) {
   });
 }
 
-// 3. 支出一覧の描画
+// 3. 支出一覧描画
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
   container.innerHTML = "";
@@ -214,18 +211,18 @@ function renderExpenseList(mExpenses) {
         </div>
       </div>
       <div class="row-right">
-        <select class="category-select" onchange="updateCategory('${item.sheetName}', ${item.rowIndex}, this.value)">
+        <select class="category-select" onchange="updateCategory('${item.id}', this.value)">
           ${catOptions}
         </select>
         <span class="row-amount">¥${item.amount.toLocaleString()}</span>
-        <button class="btn-delete" onclick="deleteItem('${item.sheetName}', ${item.rowIndex})">🗑</button>
+        <button class="btn-delete" onclick="deleteItem('${item.id}')">🗑</button>
       </div>
     `;
     container.appendChild(row);
   });
 }
 
-// 4. 収入一覧の描画
+// 4. 収入一覧描画
 function renderIncomeList(mIncomes) {
   const container = document.getElementById("income-list-container");
   container.innerHTML = "";
@@ -250,20 +247,19 @@ function renderIncomeList(mIncomes) {
         </div>
       </div>
       <div class="row-right">
-        <select class="category-select" onchange="updateCategory('${item.sheetName}', ${item.rowIndex}, this.value)">
+        <select class="category-select" onchange="updateCategory('${item.id}', this.value)">
           ${catOptions}
         </select>
         <span class="row-amount">¥${item.amount.toLocaleString()}</span>
-        <button class="btn-delete" onclick="deleteItem('${item.sheetName}', ${item.rowIndex})">🗑</button>
+        <button class="btn-delete" onclick="deleteItem('${item.id}')">🗑</button>
       </div>
     `;
     container.appendChild(row);
   });
 }
 
-// 5. カテゴリー・予算管理画面（支出＋収入）
+// 5. カテゴリー・予算管理描画
 function renderCategoryManageList() {
-  // 支出カテゴリー一覧
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
 
@@ -291,15 +287,18 @@ function renderCategoryManageList() {
     input.addEventListener("change", (e) => {
       const cat = e.target.dataset.cat;
       const val = Number(e.target.value) || 0;
+      
+      // 楽観的更新
       appState.rawData.budgets[cat] = val;
-      sendPostData({
+      renderApp();
+
+      sendPostDataBackground({
         action: "updateBudgets",
         payload: appState.rawData.budgets
       });
     });
   });
 
-  // 収入カテゴリー一覧
   const incContainer = document.getElementById("inc-category-manage-list");
   incContainer.innerHTML = "";
 
@@ -321,30 +320,146 @@ function renderCategoryManageList() {
   });
 }
 
-// 操作アクション
-function updateCategory(sheetName, rowIndex, category) {
-  sendPostData({
+// -----------------------------------------------------------------------------
+// 高速・即時反映（楽観的UI）アクション処理
+// -----------------------------------------------------------------------------
+
+// 明細のカテゴリー変更
+function updateCategory(itemId, newCategory) {
+  let item = appState.rawData.expenses.find(e => e.id === itemId) || appState.rawData.incomes.find(i => i.id === itemId);
+  if (!item) return;
+
+  // 1. ローカルメモリ更新 ＆ 即時描画 (0.1秒)
+  item.category = newCategory;
+  renderApp();
+
+  // 2. 裏でGAS更新
+  sendPostDataBackground({
     action: "updateCategory",
-    payload: { sheetName, rowIndex, category }
+    payload: { sheetName: item.sheetName, rowIndex: item.rowIndex, category: newCategory }
   });
 }
 
-function deleteItem(sheetName, rowIndex) {
-  if (confirm("この明細を削除しますか？")) {
-    sendPostData({
-      action: "deleteTransaction",
-      payload: { sheetName, rowIndex }
-    });
+// 明細削除
+function deleteItem(itemId) {
+  if (!confirm("この明細を削除しますか？")) return;
+
+  const expIndex = appState.rawData.expenses.findIndex(e => e.id === itemId);
+  let item = null;
+
+  if (expIndex !== -1) {
+    item = appState.rawData.expenses[expIndex];
+    appState.rawData.expenses.splice(expIndex, 1);
+  } else {
+    const incIndex = appState.rawData.incomes.findIndex(i => i.id === itemId);
+    if (incIndex !== -1) {
+      item = appState.rawData.incomes[incIndex];
+      appState.rawData.incomes.splice(incIndex, 1);
+    }
   }
+
+  if (!item) return;
+
+  // 即時描画
+  renderApp();
+
+  // 裏でGAS削除
+  sendPostDataBackground({
+    action: "deleteTransaction",
+    payload: { sheetName: item.sheetName, rowIndex: item.rowIndex }
+  });
 }
 
-function deleteCategory(type, name) {
-  if (confirm(`「${name}」カテゴリーを削除しますか？`)) {
-    sendPostData({
-      action: "deleteCategory",
-      payload: { type, name }
-    });
+// 収支登録モーダルからの保存
+function handleTransactionSubmit(e) {
+  e.preventDefault();
+  const type = document.getElementById("tx-type").value;
+  const payload = {
+    date: document.getElementById("tx-date").value,
+    category: document.getElementById("tx-category").value,
+    amount: Number(document.getElementById("tx-amount").value),
+    member: document.getElementById("tx-member").value,
+    memo: document.getElementById("tx-memo").value
+  };
+
+  closeTxModal();
+
+  // 1. 仮オブジェクトを作って即座に画面反映
+  const tempItem = {
+    id: "temp_" + Date.now(),
+    sheetName: type === "expense" ? "AMEX" : "収入",
+    rowIndex: null,
+    date: payload.date,
+    category: payload.category,
+    memo: payload.memo,
+    amount: payload.amount,
+    member: payload.member
+  };
+
+  if (type === "expense") {
+    appState.rawData.expenses.unshift(tempItem);
+  } else {
+    appState.rawData.incomes.unshift(tempItem);
   }
+
+  renderApp(); // 即時反描画
+
+  // 2. 裏でGAS保存 ＆ 返ってきたRowIndexを更新
+  sendPostDataBackground({
+    action: type === "expense" ? "addExpense" : "addIncome",
+    payload: payload
+  }, (result) => {
+    if (result.newRowIndex) {
+      tempItem.rowIndex = result.newRowIndex;
+      tempItem.id = `${tempItem.sheetName}_${result.newRowIndex}`;
+    }
+  });
+}
+
+// カテゴリー追加
+function handleAddCategory(e) {
+  e.preventDefault();
+  const type = document.getElementById("new-cat-type").value;
+  const name = document.getElementById("new-cat-name").value.trim();
+  const budget = Number(document.getElementById("new-cat-budget").value) || 0;
+
+  if (!name) return;
+
+  // 1. 即時画面追加
+  if (type === "支出") {
+    if (!appState.rawData.expCategories.includes(name)) appState.rawData.expCategories.push(name);
+    appState.rawData.budgets[name] = budget;
+  } else {
+    if (!appState.rawData.incCategories.includes(name)) appState.rawData.incCategories.push(name);
+  }
+
+  document.getElementById("form-add-category").reset();
+  renderApp(); // 即時描画
+
+  // 2. 裏でGAS保存
+  sendPostDataBackground({
+    action: "addCategory",
+    payload: { type, name, budget }
+  });
+}
+
+// カテゴリー削除
+function deleteCategory(type, name) {
+  if (!confirm(`「${name}」カテゴリーを削除しますか？`)) return;
+
+  if (type === "支出") {
+    appState.rawData.expCategories = appState.rawData.expCategories.filter(c => c !== name);
+    delete appState.rawData.budgets[name];
+  } else {
+    appState.rawData.incCategories = appState.rawData.incCategories.filter(c => c !== name);
+  }
+
+  renderApp(); // 即時描画
+
+  sendPostDataBackground({
+    action: "deleteCategory",
+    payload: { type, name }
+  });
 }
 
 function openExpenseModal() { openModal("expense"); }
@@ -370,38 +485,4 @@ function openModal(type) {
 function closeTxModal() {
   document.getElementById("modal-transaction").classList.add("hidden");
   document.getElementById("form-transaction").reset();
-}
-
-function handleTransactionSubmit(e) {
-  e.preventDefault();
-  const type = document.getElementById("tx-type").value;
-  const payload = {
-    date: document.getElementById("tx-date").value,
-    category: document.getElementById("tx-category").value,
-    amount: Number(document.getElementById("tx-amount").value),
-    member: document.getElementById("tx-member").value,
-    memo: document.getElementById("tx-memo").value
-  };
-
-  closeTxModal();
-  sendPostData({
-    action: type === "expense" ? "addExpense" : "addIncome",
-    payload: payload
-  });
-}
-
-function handleAddCategory(e) {
-  e.preventDefault();
-  const type = document.getElementById("new-cat-type").value;
-  const name = document.getElementById("new-cat-name").value.trim();
-  const budget = Number(document.getElementById("new-cat-budget").value) || 0;
-
-  if (!name) return;
-
-  sendPostData({
-    action: "addCategory",
-    payload: { type, name, budget }
-  });
-
-  document.getElementById("form-add-category").reset();
 }
