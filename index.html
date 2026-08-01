@@ -72,6 +72,12 @@
 
       <!-- カテゴリー予算グリッド -->
       <div id="category-budget-grid" class="category-grid"></div>
+
+      <!-- 人ごとの収入セクション（画像追加分） -->
+      <div class="dashboard-subhead" style="margin-top: 2.5rem;">
+        <h2>人ごとの収入</h2>
+      </div>
+      <div id="member-income-container" class="member-income-list"></div>
     </section>
 
     <!-- View 2: 支出一覧 -->
@@ -131,20 +137,23 @@
         </div>
       </div>
 
-      <div class="card add-category-card">
+      <div class="card add-category-card" style="margin-bottom: 2rem;">
         <form id="form-add-category" class="inline-form">
           <select id="new-cat-type" class="form-control">
             <option value="支出">支出</option>
             <option value="収入">収入</option>
           </select>
           <input type="text" id="new-cat-name" class="form-control" placeholder="カテゴリー名" required>
-          <input type="number" id="new-cat-budget" class="form-control" placeholder="月の予算">
+          <input type="number" id="new-cat-budget" class="form-control" placeholder="月の予算（支出のみ）">
           <button type="submit" class="btn btn-primary">+ 追加</button>
         </form>
       </div>
 
       <h2 class="subhead-title">支出カテゴリー</h2>
-      <div id="exp-category-manage-list" class="item-list"></div>
+      <div id="exp-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
+
+      <h2 class="subhead-title">収入カテゴリー</h2>
+      <div id="inc-category-manage-list" class="item-list"></div>
     </section>
 
   </main>
@@ -166,6 +175,10 @@
         <div class="form-group">
           <label>金額</label>
           <input type="number" id="tx-amount" class="form-control" placeholder="0" required>
+        </div>
+        <div class="form-group">
+          <label>担当者（名簿）</label>
+          <select id="tx-member" class="form-control"></select>
         </div>
         <div class="form-group">
           <label>内容 / 備考</label>
