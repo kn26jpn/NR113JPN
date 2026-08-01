@@ -1,4 +1,5 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxfxd5xpL_LwmhoMzMm08_F5lXNhQlJavm7I6kiCFL8ZRQtXhsJEPAGOcfA8vAOt4Wp/exec";
+const CACHE_KEY = "kakeibo_local_data_v1";
 
 let appState = {
   currentDate: new Date(),
@@ -21,22 +22,44 @@ const COLOR_PALETTE = [
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
-  fetchInitialData();
+  
+  // 1. 【最重要】まずローカルキャッシュから0.1秒で即座に描画
+  loadLocalCacheAndRender();
+
+  // 2. 裏でGASから最新データを取得し、バックグラウンド更新
+  syncWithGAS();
 
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
 });
 
-// JSONP 通信 (初回起動時のみ実行)
-function fetchInitialData() {
+// キャッシュを読み込んで0.01秒で描画
+function loadLocalCacheAndRender() {
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try {
+      appState.rawData = JSON.parse(cached);
+      renderApp();
+    } catch (e) {
+      console.error("キャッシュ読み込み失敗:", e);
+    }
+  }
+}
+
+// 状態を変更するたびにローカルキャッシュに即座に保存
+function saveLocalCache() {
+  localStorage.setItem(CACHE_KEY, JSON.stringify(appState.rawData));
+}
+
+// バックグラウンドでGASから最新データを取得して更新
+function syncWithGAS() {
   const callbackName = "gasCallback_" + Date.now();
   
   window[callbackName] = function(response) {
     if (response.status === "success") {
       appState.rawData = response.data;
-      renderApp();
-    } else {
-      alert("データ取得エラー: " + response.message);
+      saveLocalCache(); // キャッシュ更新
+      renderApp();      // 最新データでサイレント再描画
     }
     delete window[callbackName];
     if (script && script.parentNode) script.parentNode.removeChild(script);
@@ -47,7 +70,7 @@ function fetchInitialData() {
   document.body.appendChild(script);
 }
 
-// バックグラウンド同期用 POST (再読み込みは行わない)
+// バックグラウンド通信用 POST
 async function sendPostDataBackground(payload, callbackOnSuccess) {
   try {
     const response = await fetch(GAS_URL, {
@@ -288,8 +311,8 @@ function renderCategoryManageList() {
       const cat = e.target.dataset.cat;
       const val = Number(e.target.value) || 0;
       
-      // 楽観的更新
       appState.rawData.budgets[cat] = val;
+      saveLocalCache();
       renderApp();
 
       sendPostDataBackground({
@@ -324,23 +347,20 @@ function renderCategoryManageList() {
 // 高速・即時反映（楽観的UI）アクション処理
 // -----------------------------------------------------------------------------
 
-// 明細のカテゴリー変更
 function updateCategory(itemId, newCategory) {
   let item = appState.rawData.expenses.find(e => e.id === itemId) || appState.rawData.incomes.find(i => i.id === itemId);
   if (!item) return;
 
-  // 1. ローカルメモリ更新 ＆ 即時描画 (0.1秒)
   item.category = newCategory;
+  saveLocalCache();
   renderApp();
 
-  // 2. 裏でGAS更新
   sendPostDataBackground({
     action: "updateCategory",
     payload: { sheetName: item.sheetName, rowIndex: item.rowIndex, category: newCategory }
   });
 }
 
-// 明細削除
 function deleteItem(itemId) {
   if (!confirm("この明細を削除しますか？")) return;
 
@@ -360,17 +380,15 @@ function deleteItem(itemId) {
 
   if (!item) return;
 
-  // 即時描画
+  saveLocalCache();
   renderApp();
 
-  // 裏でGAS削除
   sendPostDataBackground({
     action: "deleteTransaction",
     payload: { sheetName: item.sheetName, rowIndex: item.rowIndex }
   });
 }
 
-// 収支登録モーダルからの保存
 function handleTransactionSubmit(e) {
   e.preventDefault();
   const type = document.getElementById("tx-type").value;
@@ -384,7 +402,6 @@ function handleTransactionSubmit(e) {
 
   closeTxModal();
 
-  // 1. 仮オブジェクトを作って即座に画面反映
   const tempItem = {
     id: "temp_" + Date.now(),
     sheetName: type === "expense" ? "AMEX" : "収入",
@@ -402,9 +419,9 @@ function handleTransactionSubmit(e) {
     appState.rawData.incomes.unshift(tempItem);
   }
 
-  renderApp(); // 即時反描画
+  saveLocalCache();
+  renderApp();
 
-  // 2. 裏でGAS保存 ＆ 返ってきたRowIndexを更新
   sendPostDataBackground({
     action: type === "expense" ? "addExpense" : "addIncome",
     payload: payload
@@ -412,11 +429,11 @@ function handleTransactionSubmit(e) {
     if (result.newRowIndex) {
       tempItem.rowIndex = result.newRowIndex;
       tempItem.id = `${tempItem.sheetName}_${result.newRowIndex}`;
+      saveLocalCache();
     }
   });
 }
 
-// カテゴリー追加
 function handleAddCategory(e) {
   e.preventDefault();
   const type = document.getElementById("new-cat-type").value;
@@ -425,7 +442,6 @@ function handleAddCategory(e) {
 
   if (!name) return;
 
-  // 1. 即時画面追加
   if (type === "支出") {
     if (!appState.rawData.expCategories.includes(name)) appState.rawData.expCategories.push(name);
     appState.rawData.budgets[name] = budget;
@@ -434,16 +450,15 @@ function handleAddCategory(e) {
   }
 
   document.getElementById("form-add-category").reset();
-  renderApp(); // 即時描画
+  saveLocalCache();
+  renderApp();
 
-  // 2. 裏でGAS保存
   sendPostDataBackground({
     action: "addCategory",
     payload: { type, name, budget }
   });
 }
 
-// カテゴリー削除
 function deleteCategory(type, name) {
   if (!confirm(`「${name}」カテゴリーを削除しますか？`)) return;
 
@@ -454,7 +469,8 @@ function deleteCategory(type, name) {
     appState.rawData.incCategories = appState.rawData.incCategories.filter(c => c !== name);
   }
 
-  renderApp(); // 即時描画
+  saveLocalCache();
+  renderApp();
 
   sendPostDataBackground({
     action: "deleteCategory",
