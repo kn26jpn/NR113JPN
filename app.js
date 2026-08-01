@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
 });
 
-// JSONPデータ取得 (CORS完全回避)
+// JSONP 通信（CORS完全回避）
 function fetchInitialData() {
   const callbackName = "gasCallback_" + Date.now();
   
@@ -36,7 +36,7 @@ function fetchInitialData() {
       appState.rawData = response.data;
       renderApp();
     } else {
-      alert("データ取得失敗: " + response.message);
+      alert("データ取得エラー: " + response.message);
     }
     delete window[callbackName];
     if (script && script.parentNode) script.parentNode.removeChild(script);
@@ -60,7 +60,7 @@ async function sendPostData(payload) {
     if (result.status === "success") {
       fetchInitialData();
     } else {
-      alert("エラー: " + result.message);
+      alert("保存エラー: " + result.message);
     }
   } catch (err) {
     alert("通信エラーが発生しました");
@@ -103,7 +103,7 @@ function renderApp() {
   const mExpenses = appState.rawData.expenses.filter(e => e.date && e.date.startsWith(prefix));
   const mIncomes = appState.rawData.incomes.filter(i => i.date && i.date.startsWith(prefix));
 
-  // 集計
+  // 収支集計
   const totalExp = mExpenses.reduce((s, item) => s + item.amount, 0);
   const totalInc = mIncomes.reduce((s, item) => s + item.amount, 0);
 
@@ -112,12 +112,13 @@ function renderApp() {
   document.getElementById("sum-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
 
   renderDashboardGrid(mExpenses);
+  renderMemberIncome(mIncomes);
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
   renderCategoryManageList();
 }
 
-// 1. ダッシュボード画面の描画
+// 1. ダッシュボード画面の描画 (プログレスバー付き)
 function renderDashboardGrid(mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -137,6 +138,7 @@ function renderDashboardGrid(mExpenses) {
     totalBudget += budget;
 
     const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
+    const progressPercent = budget > 0 ? Math.min(100, Math.round((amount / budget) * 100)) : 0;
 
     const card = document.createElement("div");
     card.className = "cat-card";
@@ -147,6 +149,9 @@ function renderDashboardGrid(mExpenses) {
           <span>${cat}</span>
         </div>
         <strong>¥${amount.toLocaleString()}</strong>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" style="width: ${progressPercent}%; background-color: ${color};"></div>
       </div>
       <div class="cat-footer">
         <span>予算 ¥${budget.toLocaleString()}</span>
@@ -159,7 +164,32 @@ function renderDashboardGrid(mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
-// 2. 支出一覧画面の描画
+// 2. 人ごとの収入の描画
+function renderMemberIncome(mIncomes) {
+  const container = document.getElementById("member-income-container");
+  container.innerHTML = "";
+
+  const memberMap = {};
+  appState.rawData.members.forEach(m => memberMap[m] = 0);
+
+  mIncomes.forEach(inc => {
+    const mem = inc.member || "共通";
+    memberMap[mem] = (memberMap[mem] || 0) + inc.amount;
+  });
+
+  Object.keys(memberMap).forEach(mem => {
+    const amount = memberMap[mem];
+    const card = document.createElement("div");
+    card.className = "member-card";
+    card.innerHTML = `
+      <span>${mem}</span>
+      <strong>¥${amount.toLocaleString()}</strong>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// 3. 支出一覧の描画
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
   container.innerHTML = "";
@@ -178,7 +208,10 @@ function renderExpenseList(mExpenses) {
     row.innerHTML = `
       <div class="row-left">
         <span class="row-date">${item.date ? item.date.substring(5) : ''}</span>
-        <span class="row-memo">${item.memo || '(内容なし)'}</span>
+        <div>
+          <span class="row-memo">${item.memo || '(内容なし)'}</span>
+          ${item.member ? `<span class="row-submemo">${item.member}</span>` : ''}
+        </div>
       </div>
       <div class="row-right">
         <select class="category-select" onchange="updateCategory('${item.sheetName}', ${item.rowIndex}, this.value)">
@@ -192,7 +225,7 @@ function renderExpenseList(mExpenses) {
   });
 }
 
-// 3. 収入一覧画面の描画
+// 4. 収入一覧の描画
 function renderIncomeList(mIncomes) {
   const container = document.getElementById("income-list-container");
   container.innerHTML = "";
@@ -211,7 +244,10 @@ function renderIncomeList(mIncomes) {
     row.innerHTML = `
       <div class="row-left">
         <span class="row-date">${item.date ? item.date.substring(5) : ''}</span>
-        <span class="row-memo">${item.memo || '(内容なし)'}</span>
+        <div>
+          <span class="row-memo">${item.memo || '(内容なし)'}</span>
+          ${item.member ? `<span class="row-submemo">${item.member}</span>` : ''}
+        </div>
       </div>
       <div class="row-right">
         <select class="category-select" onchange="updateCategory('${item.sheetName}', ${item.rowIndex}, this.value)">
@@ -225,10 +261,11 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// 4. カテゴリー・予算管理画面
+// 5. カテゴリー・予算管理画面（支出＋収入）
 function renderCategoryManageList() {
-  const container = document.getElementById("exp-category-manage-list");
-  container.innerHTML = "";
+  // 支出カテゴリー一覧
+  const expContainer = document.getElementById("exp-category-manage-list");
+  expContainer.innerHTML = "";
 
   appState.rawData.expCategories.forEach((cat, i) => {
     const budget = appState.rawData.budgets[cat] || 0;
@@ -244,9 +281,10 @@ function renderCategoryManageList() {
       <div class="row-right">
         <span style="font-size:0.85rem; color:var(--text-muted);">予算</span>
         <input type="number" class="form-control budget-update-input" data-cat="${cat}" value="${budget}" style="width:110px;">
+        <button class="btn-delete" onclick="deleteCategory('支出', '${cat}')">🗑</button>
       </div>
     `;
-    container.appendChild(row);
+    expContainer.appendChild(row);
   });
 
   document.querySelectorAll(".budget-update-input").forEach(input => {
@@ -259,6 +297,27 @@ function renderCategoryManageList() {
         payload: appState.rawData.budgets
       });
     });
+  });
+
+  // 収入カテゴリー一覧
+  const incContainer = document.getElementById("inc-category-manage-list");
+  incContainer.innerHTML = "";
+
+  appState.rawData.incCategories.forEach((cat, i) => {
+    const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
+
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div class="row-left">
+        <span class="cat-dot" style="background:${color}"></span>
+        <span class="row-memo">${cat}</span>
+      </div>
+      <div class="row-right">
+        <button class="btn-delete" onclick="deleteCategory('収入', '${cat}')">🗑</button>
+      </div>
+    `;
+    incContainer.appendChild(row);
   });
 }
 
@@ -279,6 +338,15 @@ function deleteItem(sheetName, rowIndex) {
   }
 }
 
+function deleteCategory(type, name) {
+  if (confirm(`「${name}」カテゴリーを削除しますか？`)) {
+    sendPostData({
+      action: "deleteCategory",
+      payload: { type, name }
+    });
+  }
+}
+
 function openExpenseModal() { openModal("expense"); }
 function openIncomeModal() { openModal("income"); }
 
@@ -291,6 +359,10 @@ function openModal(type) {
   catSelect.innerHTML = "";
   const categories = type === "expense" ? appState.rawData.expCategories : appState.rawData.incCategories;
   categories.forEach(c => catSelect.add(new Option(c, c)));
+
+  const memSelect = document.getElementById("tx-member");
+  memSelect.innerHTML = "";
+  appState.rawData.members.forEach(m => memSelect.add(new Option(m, m)));
 
   document.getElementById("modal-transaction").classList.remove("hidden");
 }
@@ -307,6 +379,7 @@ function handleTransactionSubmit(e) {
     date: document.getElementById("tx-date").value,
     category: document.getElementById("tx-category").value,
     amount: Number(document.getElementById("tx-amount").value),
+    member: document.getElementById("tx-member").value,
     memo: document.getElementById("tx-memo").value
   };
 
