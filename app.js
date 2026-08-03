@@ -6,7 +6,9 @@ let appState = {
   activeTab: "dashboard",
   rawData: {
     expCategories: [],
+    expColors: {},
     incCategories: [],
+    incColors: {},
     members: [],
     budgets: {},
     expenses: [],
@@ -19,19 +21,27 @@ const COLOR_PALETTE = [
   "#6ee7b7", "#fbbf24", "#f472b6", "#38bdf8"
 ];
 
+// XSS対策用エスケープユーティリティ
+function escapeHTML(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
   
-  // 1. キャッシュが存在すれば0.01秒で超即時表示
   const hasCache = loadLocalCacheAndRender();
 
-  // 2. キャッシュがない場合でもスケルトン状態を即時描画
   if (!hasCache) {
     renderAppSkeleton();
   }
 
-  // 3. 超高速データ取得APIを実行（初回1~2秒）
   syncWithGAS();
 
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
@@ -43,6 +53,8 @@ function loadLocalCacheAndRender() {
   if (cached) {
     try {
       appState.rawData = JSON.parse(cached);
+      if (!appState.rawData.expColors) appState.rawData.expColors = {};
+      if (!appState.rawData.incColors) appState.rawData.incColors = {};
       renderApp();
       return true;
     } catch (e) {
@@ -56,7 +68,6 @@ function saveLocalCache() {
   localStorage.setItem(CACHE_KEY, JSON.stringify(appState.rawData));
 }
 
-// 初回ロード用のスケルトン画面表示
 function renderAppSkeleton() {
   const y = appState.currentDate.getFullYear();
   const m = String(appState.currentDate.getMonth() + 1).padStart(2, '0');
@@ -72,8 +83,10 @@ function syncWithGAS() {
   window[callbackName] = function(response) {
     if (response.status === "success") {
       appState.rawData = response.data;
+      if (!appState.rawData.expColors) appState.rawData.expColors = {};
+      if (!appState.rawData.incColors) appState.rawData.incColors = {};
       saveLocalCache();
-      renderApp(); // データ受信後、即座に実データを描画
+      renderApp();
     }
     delete window[callbackName];
     if (script && script.parentNode) script.parentNode.removeChild(script);
@@ -151,7 +164,7 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// ダッシュボード描画
+// ダッシュボード描画（支出カテゴリーの順序および指定色に従って描画）
 function renderDashboardGrid(mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -170,7 +183,7 @@ function renderDashboardGrid(mExpenses) {
     const remaining = budget - amount;
     totalBudget += budget;
 
-    const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
+    const color = appState.rawData.expColors[cat] || COLOR_PALETTE[i % COLOR_PALETTE.length];
     const progressPercent = budget > 0 ? Math.min(100, Math.round((amount / budget) * 100)) : 0;
 
     const card = document.createElement("div");
@@ -178,13 +191,13 @@ function renderDashboardGrid(mExpenses) {
     card.innerHTML = `
       <div class="cat-header">
         <div class="cat-title-wrap">
-          <span class="cat-dot" style="background:${color}"></span>
-          <span>${cat}</span>
+          <span class="cat-dot" style="background:${escapeHTML(color)}"></span>
+          <span>${escapeHTML(cat)}</span>
         </div>
         <strong>¥${amount.toLocaleString()}</strong>
       </div>
       <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width: ${progressPercent}%; background-color: ${color};"></div>
+        <div class="progress-bar-fill" style="width: ${progressPercent}%; background-color: ${escapeHTML(color)};"></div>
       </div>
       <div class="cat-footer">
         <span>予算 ¥${budget.toLocaleString()}</span>
@@ -214,7 +227,7 @@ function renderMemberIncome(mIncomes) {
     const card = document.createElement("div");
     card.className = "member-card";
     card.innerHTML = `
-      <span>${mem}</span>
+      <span>${escapeHTML(mem)}</span>
       <strong>¥${amount.toLocaleString()}</strong>
     `;
     container.appendChild(card);
@@ -233,25 +246,34 @@ function renderExpenseList(mExpenses) {
     row.className = "list-row";
     
     const catOptions = appState.rawData.expCategories.map(c => 
-      `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`
+      `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
     ).join("");
 
     row.innerHTML = `
       <div class="row-left">
-        <span class="row-date">${item.date ? item.date.substring(5) : ''}</span>
+        <span class="row-date">${item.date ? escapeHTML(item.date.substring(5)) : ''}</span>
         <div>
-          <span class="row-memo">${item.memo || '(内容なし)'}</span>
-          ${item.member ? `<span class="row-submemo">${item.member}</span>` : ''}
+          <span class="row-memo">${escapeHTML(item.memo || '(内容なし)')}</span>
+          ${item.member ? `<span class="row-submemo">${escapeHTML(item.member)}</span>` : ''}
         </div>
       </div>
       <div class="row-right">
-        <select class="category-select" onchange="updateCategory('${item.id}', this.value)">
+        <select class="category-select" data-id="${escapeHTML(item.id)}">
           ${catOptions}
         </select>
         <span class="row-amount">¥${item.amount.toLocaleString()}</span>
-        <button class="btn-delete" onclick="deleteItem('${item.id}')">🗑</button>
+        <button class="btn-delete" data-id="${escapeHTML(item.id)}">🗑</button>
       </div>
     `;
+
+    row.querySelector(".category-select").addEventListener("change", (e) => {
+      updateCategory(e.target.dataset.id, e.target.value);
+    });
+
+    row.querySelector(".btn-delete").addEventListener("click", (e) => {
+      deleteItem(e.currentTarget.dataset.id);
+    });
+
     container.appendChild(row);
   });
 }
@@ -268,53 +290,118 @@ function renderIncomeList(mIncomes) {
     row.className = "list-row";
 
     const catOptions = appState.rawData.incCategories.map(c => 
-      `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`
+      `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
     ).join("");
 
     row.innerHTML = `
       <div class="row-left">
-        <span class="row-date">${item.date ? item.date.substring(5) : ''}</span>
+        <span class="row-date">${item.date ? escapeHTML(item.date.substring(5)) : ''}</span>
         <div>
-          <span class="row-memo">${item.memo || '(内容なし)'}</span>
-          ${item.member ? `<span class="row-submemo">${item.member}</span>` : ''}
+          <span class="row-memo">${escapeHTML(item.memo || '(内容なし)')}</span>
+          ${item.member ? `<span class="row-submemo">${escapeHTML(item.member)}</span>` : ''}
         </div>
       </div>
       <div class="row-right">
-        <select class="category-select" onchange="updateCategory('${item.id}', this.value)">
+        <select class="category-select" data-id="${escapeHTML(item.id)}">
           ${catOptions}
         </select>
         <span class="row-amount">¥${item.amount.toLocaleString()}</span>
-        <button class="btn-delete" onclick="deleteItem('${item.id}')">🗑</button>
+        <button class="btn-delete" data-id="${escapeHTML(item.id)}">🗑</button>
       </div>
     `;
+
+    row.querySelector(".category-select").addEventListener("change", (e) => {
+      updateCategory(e.target.dataset.id, e.target.value);
+    });
+
+    row.querySelector(".btn-delete").addEventListener("click", (e) => {
+      deleteItem(e.currentTarget.dataset.id);
+    });
+
     container.appendChild(row);
   });
 }
 
+// カテゴリー管理画面の描画（並び替えボタン・色選択付き）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
 
   appState.rawData.expCategories.forEach((cat, i) => {
     const budget = appState.rawData.budgets[cat] || 0;
-    const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
+    const color = appState.rawData.expColors[cat] || COLOR_PALETTE[i % COLOR_PALETTE.length];
 
     const row = document.createElement("div");
     row.className = "list-row";
     row.innerHTML = `
       <div class="row-left">
-        <span class="cat-dot" style="background:${color}"></span>
-        <span class="row-memo">${cat}</span>
+        <input type="color" class="category-color-picker" data-type="支出" data-cat="${escapeHTML(cat)}" value="${escapeHTML(color)}" style="border:none; width:24px; height:24px; cursor:pointer; background:none;">
+        <span class="row-memo">${escapeHTML(cat)}</span>
       </div>
       <div class="row-right">
+        <button class="arrow-btn btn-move-up" data-type="支出" data-index="${i}">▲</button>
+        <button class="arrow-btn btn-move-down" data-type="支出" data-index="${i}">▼</button>
         <span style="font-size:0.85rem; color:var(--text-muted);">予算</span>
-        <input type="number" class="form-control budget-update-input" data-cat="${cat}" value="${budget}" style="width:110px;">
-        <button class="btn-delete" onclick="deleteCategory('支出', '${cat}')">🗑</button>
+        <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:110px;">
+        <button class="btn-delete btn-delete-cat" data-type="支出" data-cat="${escapeHTML(cat)}">🗑</button>
       </div>
     `;
     expContainer.appendChild(row);
   });
 
+  const incContainer = document.getElementById("inc-category-manage-list");
+  incContainer.innerHTML = "";
+
+  appState.rawData.incCategories.forEach((cat, i) => {
+    const color = appState.rawData.incColors[cat] || COLOR_PALETTE[i % COLOR_PALETTE.length];
+
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div class="row-left">
+        <input type="color" class="category-color-picker" data-type="収入" data-cat="${escapeHTML(cat)}" value="${escapeHTML(color)}" style="border:none; width:24px; height:24px; cursor:pointer; background:none;">
+        <span class="row-memo">${escapeHTML(cat)}</span>
+      </div>
+      <div class="row-right">
+        <button class="arrow-btn btn-move-up" data-type="収入" data-index="${i}">▲</button>
+        <button class="arrow-btn btn-move-down" data-type="収入" data-index="${i}">▼</button>
+        <button class="btn-delete btn-delete-cat" data-type="収入" data-cat="${escapeHTML(cat)}">🗑</button>
+      </div>
+    `;
+    incContainer.appendChild(row);
+  });
+
+  attachCategoryManagementEvents();
+}
+
+function attachCategoryManagementEvents() {
+  // 色変更イベント
+  document.querySelectorAll(".category-color-picker").forEach(picker => {
+    picker.addEventListener("change", (e) => {
+      const type = e.target.dataset.type;
+      const cat = e.target.dataset.cat;
+      const newColor = e.target.value;
+
+      if (type === "支出") {
+        appState.rawData.expColors[cat] = newColor;
+      } else {
+        appState.rawData.incColors[cat] = newColor;
+      }
+      saveLocalCache();
+      renderApp();
+
+      sendPostDataBackground({
+        action: "saveCategoryOrder",
+        payload: {
+          type,
+          categories: type === "支出" ? appState.rawData.expCategories : appState.rawData.incCategories,
+          colors: type === "支出" ? appState.rawData.expColors : appState.rawData.incColors
+        }
+      });
+    });
+  });
+
+  // 予算額更新イベント
   document.querySelectorAll(".budget-update-input").forEach(input => {
     input.addEventListener("change", (e) => {
       const cat = e.target.dataset.cat;
@@ -331,24 +418,54 @@ function renderCategoryManageList() {
     });
   });
 
-  const incContainer = document.getElementById("inc-category-manage-list");
-  incContainer.innerHTML = "";
+  // 上移動ボタン
+  document.querySelectorAll(".btn-move-up").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const type = e.currentTarget.dataset.type;
+      const index = Number(e.currentTarget.dataset.index);
+      moveCategory(type, index, -1);
+    });
+  });
 
-  appState.rawData.incCategories.forEach((cat, i) => {
-    const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
+  // 下移動ボタン
+  document.querySelectorAll(".btn-move-down").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const type = e.currentTarget.dataset.type;
+      const index = Number(e.currentTarget.dataset.index);
+      moveCategory(type, index, 1);
+    });
+  });
 
-    const row = document.createElement("div");
-    row.className = "list-row";
-    row.innerHTML = `
-      <div class="row-left">
-        <span class="cat-dot" style="background:${color}"></span>
-        <span class="row-memo">${cat}</span>
-      </div>
-      <div class="row-right">
-        <button class="btn-delete" onclick="deleteCategory('収入', '${cat}')">🗑</button>
-      </div>
-    `;
-    incContainer.appendChild(row);
+  // 削除ボタン
+  document.querySelectorAll(".btn-delete-cat").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const type = e.currentTarget.dataset.type;
+      const cat = e.currentTarget.dataset.cat;
+      deleteCategory(type, cat);
+    });
+  });
+}
+
+function moveCategory(type, index, direction) {
+  const list = type === "支出" ? appState.rawData.expCategories : appState.rawData.incCategories;
+  const targetIndex = index + direction;
+
+  if (targetIndex < 0 || targetIndex >= list.length) return;
+
+  const temp = list[index];
+  list[index] = list[targetIndex];
+  list[targetIndex] = temp;
+
+  saveLocalCache();
+  renderApp();
+
+  sendPostDataBackground({
+    action: "saveCategoryOrder",
+    payload: {
+      type,
+      categories: list,
+      colors: type === "支出" ? appState.rawData.expColors : appState.rawData.incColors
+    }
   });
 }
 
@@ -448,10 +565,14 @@ function handleAddCategory(e) {
   if (!name) return;
 
   if (type === "支出") {
-    if (!appState.rawData.expCategories.includes(name)) appState.rawData.expCategories.push(name);
+    if (!appState.rawData.expCategories.includes(name)) {
+      appState.rawData.expCategories.push(name);
+    }
     appState.rawData.budgets[name] = budget;
   } else {
-    if (!appState.rawData.incCategories.includes(name)) appState.rawData.incCategories.push(name);
+    if (!appState.rawData.incCategories.includes(name)) {
+      appState.rawData.incCategories.push(name);
+    }
   }
 
   document.getElementById("form-add-category").reset();
@@ -470,8 +591,10 @@ function deleteCategory(type, name) {
   if (type === "支出") {
     appState.rawData.expCategories = appState.rawData.expCategories.filter(c => c !== name);
     delete appState.rawData.budgets[name];
+    delete appState.rawData.expColors[name];
   } else {
     appState.rawData.incCategories = appState.rawData.incCategories.filter(c => c !== name);
+    delete appState.rawData.incColors[name];
   }
 
   saveLocalCache();
