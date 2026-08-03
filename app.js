@@ -164,7 +164,6 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// ダッシュボード描画（支出カテゴリーの順序および指定色に従って描画）
 function renderDashboardGrid(mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -322,7 +321,6 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理画面の描画（並び替えボタン・色選択付き）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -335,7 +333,7 @@ function renderCategoryManageList() {
     row.className = "list-row";
     row.innerHTML = `
       <div class="row-left">
-        <input type="color" class="category-color-picker" data-type="支出" data-cat="${escapeHTML(cat)}" value="${escapeHTML(color)}" style="border:none; width:24px; height:24px; cursor:pointer; background:none;">
+        <input type="color" class="category-color-picker" data-type="支出" data-cat="${escapeHTML(cat)}" value="${escapeHTML(color)}">
         <span class="row-memo">${escapeHTML(cat)}</span>
       </div>
       <div class="row-right">
@@ -359,7 +357,7 @@ function renderCategoryManageList() {
     row.className = "list-row";
     row.innerHTML = `
       <div class="row-left">
-        <input type="color" class="category-color-picker" data-type="収入" data-cat="${escapeHTML(cat)}" value="${escapeHTML(color)}" style="border:none; width:24px; height:24px; cursor:pointer; background:none;">
+        <input type="color" class="category-color-picker" data-type="収入" data-cat="${escapeHTML(cat)}" value="${escapeHTML(color)}">
         <span class="row-memo">${escapeHTML(cat)}</span>
       </div>
       <div class="row-right">
@@ -375,7 +373,6 @@ function renderCategoryManageList() {
 }
 
 function attachCategoryManagementEvents() {
-  // 色変更イベント
   document.querySelectorAll(".category-color-picker").forEach(picker => {
     picker.addEventListener("change", (e) => {
       const type = e.target.dataset.type;
@@ -401,7 +398,6 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 予算額更新イベント
   document.querySelectorAll(".budget-update-input").forEach(input => {
     input.addEventListener("change", (e) => {
       const cat = e.target.dataset.cat;
@@ -418,7 +414,6 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 上移動ボタン
   document.querySelectorAll(".btn-move-up").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const type = e.currentTarget.dataset.type;
@@ -427,7 +422,6 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 下移動ボタン
   document.querySelectorAll(".btn-move-down").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const type = e.currentTarget.dataset.type;
@@ -436,7 +430,6 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 削除ボタン
   document.querySelectorAll(".btn-delete-cat").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const type = e.currentTarget.dataset.type;
