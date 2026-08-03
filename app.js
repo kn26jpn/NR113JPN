@@ -36,12 +36,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
   
+  // 1. キャッシュが存在すれば0.01秒で即時表示
   const hasCache = loadLocalCacheAndRender();
 
   if (!hasCache) {
     renderAppSkeleton();
   }
 
+  // 2. 超高速データ取得APIを実行
   syncWithGAS();
 
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
@@ -159,6 +161,7 @@ function renderApp() {
 
   renderDashboardGrid(mExpenses);
   renderMemberIncome(mIncomes);
+  renderMemberExpense(mExpenses); // 人ごとの個人支出を描画
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
   renderCategoryManageList();
@@ -233,6 +236,34 @@ function renderMemberIncome(mIncomes) {
   });
 }
 
+// 人ごとの個人支出の個別集計描画
+function renderMemberExpense(mExpenses) {
+  const container = document.getElementById("member-expense-container");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const memberMap = {};
+  appState.rawData.members.forEach(m => memberMap[m] = 0);
+
+  mExpenses.forEach(exp => {
+    if (exp.member && exp.member.trim() !== "") {
+      const mem = exp.member.trim();
+      memberMap[mem] = (memberMap[mem] || 0) + exp.amount;
+    }
+  });
+
+  Object.keys(memberMap).forEach(mem => {
+    const amount = memberMap[mem];
+    const card = document.createElement("div");
+    card.className = "member-card";
+    card.innerHTML = `
+      <span>${escapeHTML(mem)}</span>
+      <strong>¥${amount.toLocaleString()}</strong>
+    `;
+    container.appendChild(card);
+  });
+}
+
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
   container.innerHTML = "";
@@ -253,7 +284,7 @@ function renderExpenseList(mExpenses) {
         <span class="row-date">${item.date ? escapeHTML(item.date.substring(5)) : ''}</span>
         <div>
           <span class="row-memo">${escapeHTML(item.memo || '(内容なし)')}</span>
-          ${item.member ? `<span class="row-submemo">${escapeHTML(item.member)}</span>` : ''}
+          ${item.member ? `<span class="row-submemo">個人支出: ${escapeHTML(item.member)}</span>` : ''}
         </div>
       </div>
       <div class="row-right">
@@ -511,7 +542,7 @@ function handleTransactionSubmit(e) {
     date: document.getElementById("tx-date").value,
     category: document.getElementById("tx-category").value,
     amount: Number(document.getElementById("tx-amount").value),
-    member: document.getElementById("tx-member").value,
+    member: document.getElementById("tx-member").value || "", // 空欄の場合は家計出費
     memo: document.getElementById("tx-memo").value
   };
 
@@ -519,7 +550,7 @@ function handleTransactionSubmit(e) {
 
   const tempItem = {
     id: "temp_" + Date.now(),
-    sheetName: type === "expense" ? "AMEX" : "収入",
+    sheetName: type === "expense" ? "現金等" : "収入", // 手入力は「現金等」シートへ記録
     rowIndex: null,
     date: payload.date,
     category: payload.category,
@@ -612,9 +643,12 @@ function openModal(type) {
   const categories = type === "expense" ? appState.rawData.expCategories : appState.rawData.incCategories;
   categories.forEach(c => catSelect.add(new Option(c, c)));
 
+  // 個人支出 (名簿) セレクトボックスの生成（デフォルトは空欄）
   const memSelect = document.getElementById("tx-member");
   memSelect.innerHTML = "";
+  memSelect.add(new Option("選択なし（家計）", ""));
   appState.rawData.members.forEach(m => memSelect.add(new Option(m, m)));
+  memSelect.value = ""; // デフォルトを空欄に設定
 
   document.getElementById("modal-transaction").classList.remove("hidden");
 }
