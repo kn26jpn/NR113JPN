@@ -35,7 +35,6 @@ function escapeHTML(str) {
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
-  initToolbarButtons();
   
   const hasCache = loadLocalCacheAndRender();
 
@@ -48,115 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
 });
-
-function initToolbarButtons() {
-  const btnAI = document.getElementById("btn-ai-classify");
-  if (btnAI) btnAI.addEventListener("click", handleAIClassify);
-
-  const btnCSV = document.getElementById("btn-csv-import");
-  const fileInput = document.getElementById("csv-file-input");
-  
-  if (btnCSV && fileInput) {
-    btnCSV.addEventListener("click", () => fileInput.click());
-    fileInput.addEventListener("change", handleCSVImport);
-  }
-}
-
-// AI自動分類イベントハンドラー
-async function handleAIClassify() {
-  const btnAI = document.getElementById("btn-ai-classify");
-  const originalText = btnAI.innerText;
-  btnAI.innerText = "⏳ AI分類中...";
-  btnAI.disabled = true;
-
-  try {
-    const response = await fetch(GAS_URL, {
-      method: "POST",
-      redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "autoClassifyAI" })
-    });
-
-    const result = await response.json();
-
-    if (result.status === "success") {
-      const count = result.classifiedCount || 0;
-      if (count > 0) {
-        alert(`${count}件のAMEX未設定支出をAIで自動分類しました！最新データを更新します。`);
-        syncWithGAS();
-      } else {
-        alert("AMEXシートにカテゴリーが空欄の支出はありませんでした。");
-      }
-    } else {
-      alert("AI自動分類処理に失敗しました: " + (result.message || ""));
-    }
-  } catch (err) {
-    console.error("AI分類エラー:", err);
-    alert("通信エラーが発生しました。");
-  } finally {
-    btnAI.innerText = originalText;
-    btnAI.disabled = false;
-  }
-}
-
-// CSVファイル読み込みハンドラー
-function handleCSVImport(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = async function(evt) {
-    const text = evt.target.result;
-    const lines = text.split(/\r\n|\n/);
-    const rows = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      const cols = parseCSVLine(lines[i]);
-      if (cols.length >= 6) {
-        rows.push(cols);
-      }
-    }
-
-    if (rows.length === 0) {
-      alert("有効なCSVデータが見つかりませんでした。");
-      return;
-    }
-
-    if (rows[0][0].includes("利用") || rows[0][0].includes("日付")) {
-      rows.shift();
-    }
-
-    if (!confirm(`${rows.length}件の明細をAMEXシートへ読み込みますか？`)) return;
-
-    sendPostDataBackground({
-      action: "importAmexCSV",
-      payload: { rows }
-    }, () => {
-      alert("CSVデータの取り込みが完了しました。最新データを同期します。");
-      syncWithGAS();
-    });
-  };
-
-  reader.readAsText(file, "Shift_JIS");
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let start = 0;
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] === '"') {
-      inQuotes = !inQuotes;
-    } else if (line[i] === ',' && !inQuotes) {
-      result.push(line.substring(start, i).replace(/^"|"$/g, '').trim());
-      start = i + 1;
-    }
-  }
-  result.push(line.substring(start).replace(/^"|"$/g, '').trim());
-  return result;
-}
 
 function loadLocalCacheAndRender() {
   const cached = localStorage.getItem(CACHE_KEY);
@@ -464,6 +354,7 @@ function renderExpenseList(mExpenses) {
     const row = document.createElement("div");
     row.className = "list-row";
     
+    // スプレッドシート側のカテゴリーと完全同一のものを選択表示（未入力時は空文字）
     let catOptions = `<option value="" ${!item.category ? 'selected' : ''}></option>`;
     catOptions += appState.rawData.expCategories.map(c => 
       `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
