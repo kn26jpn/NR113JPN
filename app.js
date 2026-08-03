@@ -35,6 +35,7 @@ function escapeHTML(str) {
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
+  initToolbarButtons();
   
   const hasCache = loadLocalCacheAndRender();
 
@@ -47,6 +48,130 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
 });
+
+function initToolbarButtons() {
+  const btnAI = document.getElementById("btn-ai-classify");
+  if (btnAI) btnAI.addEventListener("click", handleAIClassify);
+
+  const btnCSV = document.getElementById("btn-csv-import");
+  const fileInput = document.getElementById("csv-file-input");
+  
+  if (btnCSV && fileInput) {
+    btnCSV.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", handleCSVImport);
+  }
+}
+
+// AI自動分類イベントハンドラー
+async function handleAIClassify() {
+  const unclassifiedItems = appState.rawData.expenses.filter(e => !e.category || e.category.trim() === "");
+
+  if (unclassifiedItems.length === 0) {
+    alert("「未設定」の支出データはありません。");
+    return;
+  }
+
+  const btnAI = document.getElementById("btn-ai-classify");
+  const originalText = btnAI.innerText;
+  btnAI.innerText = "⏳ 分類中...";
+  btnAI.disabled = true;
+
+  try {
+    const payload = {
+      targetItems: unclassifiedItems,
+      categories: appState.rawData.expCategories
+    };
+
+    const response = await fetch(GAS_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "autoClassifyAI", payload })
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success" && result.updatedItems) {
+      result.updatedItems.forEach(up => {
+        const item = appState.rawData.expenses.find(e => e.id === up.id);
+        if (item) item.category = up.category;
+      });
+
+      saveLocalCache();
+      renderApp();
+      alert(`${result.updatedItems.length}件の支出をAIで自動分類しました。`);
+    } else {
+      alert("AI自動分類に失敗しました。");
+    }
+  } catch (err) {
+    console.error("AI分類エラー:", err);
+    alert("通信エラーが発生しました。");
+  } finally {
+    btnAI.innerText = originalText;
+    btnAI.disabled = false;
+  }
+}
+
+// CSVファイル読み込みハンドラー (AMEXシートの最終行の次へ追加)
+function handleCSVImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async function(evt) {
+    const text = evt.target.result;
+    const lines = text.split(/\r\n|\n/);
+    const rows = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const cols = parseCSVLine(lines[i]);
+      if (cols.length >= 6) { // 日付や金額等を含む標準行
+        rows.push(cols);
+      }
+    }
+
+    if (rows.length === 0) {
+      alert("有効なCSVデータが見つかりませんでした。");
+      return;
+    }
+
+    // ヘッダー行が含まれている場合は除外
+    if (rows[0][0].includes("利用") || rows[0][0].includes("日付")) {
+      rows.shift();
+    }
+
+    if (!confirm(`${rows.length}件の明細をAMEXシートへ読み込みますか？`)) return;
+
+    sendPostDataBackground({
+      action: "importAmexCSV",
+      payload: { rows }
+    }, () => {
+      alert("CSVデータの取り込みが完了しました。最新データを同期します。");
+      syncWithGAS();
+    });
+  };
+
+  reader.readAsText(file, "Shift_JIS"); // 日本のカード明細標準エンコーディング
+}
+
+// 簡易CSVパース関数
+function parseCSVLine(line) {
+  const result = [];
+  let start = 0;
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') {
+      inQuotes = !inQuotes;
+    } else if (line[i] === ',' && !inQuotes) {
+      result.push(line.substring(start, i).replace(/^"|"$/g, '').trim());
+      start = i + 1;
+    }
+  }
+  result.push(line.substring(start).replace(/^"|"$/g, '').trim());
+  return result;
+}
 
 function loadLocalCacheAndRender() {
   const cached = localStorage.getItem(CACHE_KEY);
@@ -343,7 +468,6 @@ function renderMemberExpense(mExpenses) {
   });
 }
 
-// 支出一覧描画（カテゴリー未指定時は空文字の選択肢に完全マッピング）
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
   container.innerHTML = "";
@@ -355,7 +479,6 @@ function renderExpenseList(mExpenses) {
     const row = document.createElement("div");
     row.className = "list-row";
     
-    // 未指定(e.category === "")の場合は先頭の空欄が初期選択(selected)される
     let catOptions = `<option value="" ${!item.category ? 'selected' : ''}></option>`;
     catOptions += appState.rawData.expCategories.map(c => 
       `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
@@ -573,7 +696,6 @@ function attachCategoryManagementEvents() {
   });
 }
 
-// カテゴリー並び替え処理（各カテゴリー名の色の保持と完全連動）
 function moveCategory(type, index, direction) {
   const list = type === "支出" ? appState.rawData.expCategories : appState.rawData.incCategories;
   const colorsMap = type === "支出" ? appState.rawData.expColors : appState.rawData.incColors;
@@ -581,18 +703,15 @@ function moveCategory(type, index, direction) {
 
   if (targetIndex < 0 || targetIndex >= list.length) return;
 
-  // 1. 各カテゴリーが現在保持している色を取得・補完
   const currentCat = list[index];
   const targetCat = list[targetIndex];
 
   const currentColor = colorsMap[currentCat] || COLOR_PALETTE[index % COLOR_PALETTE.length];
   const targetColor = colorsMap[targetCat] || COLOR_PALETTE[targetIndex % COLOR_PALETTE.length];
 
-  // 2. 名前の入れ替え
   list[index] = targetCat;
   list[targetIndex] = currentCat;
 
-  // 3. 色データの明確な保持・割り当て
   colorsMap[currentCat] = currentColor;
   colorsMap[targetCat] = targetColor;
 
