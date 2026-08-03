@@ -395,5 +395,4 @@ body {
 @media (max-width: 768px) {
   .category-grid, .summary-cards { grid-template-columns: 1fr; }
   .inline-form { flex-direction: column; }
-  .action-toolbar { flex-wrap: wrap; }
 }
