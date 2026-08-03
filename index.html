@@ -78,6 +78,12 @@
         <h2>人ごとの収入</h2>
       </div>
       <div id="member-income-container" class="member-income-list"></div>
+
+      <!-- 人ごとの個人支出セクション (新規追加) -->
+      <div class="dashboard-subhead" style="margin-top: 2.5rem;">
+        <h2>人ごとの個人支出</h2>
+      </div>
+      <div id="member-expense-container" class="member-income-list"></div>
     </section>
 
     <!-- View 2: 支出一覧 -->
@@ -88,7 +94,8 @@
           <h1 class="main-title">支出</h1>
         </div>
         <div class="action-toolbar">
-          <button class="btn btn-secondary" onclick="openExpenseModal()">+ 現金などを手入力</button>
+          <!-- ボタンを黒背景・白文字(btn-primary)に変更 -->
+          <button class="btn btn-primary" onclick="openExpenseModal()">+ 現金などを手入力</button>
         </div>
       </div>
 
@@ -177,7 +184,8 @@
           <input type="number" id="tx-amount" class="form-control" placeholder="0" required>
         </div>
         <div class="form-group">
-          <label>担当者（名簿）</label>
+          <!-- 「担当者（名簿）」から「個人支出」へ名称変更 -->
+          <label>個人支出</label>
           <select id="tx-member" class="form-control"></select>
         </div>
         <div class="form-group">
