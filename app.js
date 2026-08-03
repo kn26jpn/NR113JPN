@@ -11,6 +11,7 @@ let appState = {
     incColors: {},
     members: [],
     budgets: {},
+    fixedExpensesMaster: [],
     expenses: [],
     incomes: []
   }
@@ -21,7 +22,6 @@ const COLOR_PALETTE = [
   "#6ee7b7", "#fbbf24", "#f472b6", "#38bdf8"
 ];
 
-// XSS対策用エスケープユーティリティ
 function escapeHTML(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -36,14 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initMonthSelector();
   
-  // 1. キャッシュが存在すれば0.01秒で即時表示
   const hasCache = loadLocalCacheAndRender();
 
   if (!hasCache) {
     renderAppSkeleton();
   }
 
-  // 2. 超高速データ取得APIを実行
   syncWithGAS();
 
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
@@ -57,6 +55,7 @@ function loadLocalCacheAndRender() {
       appState.rawData = JSON.parse(cached);
       if (!appState.rawData.expColors) appState.rawData.expColors = {};
       if (!appState.rawData.incColors) appState.rawData.incColors = {};
+      if (!appState.rawData.fixedExpensesMaster) appState.rawData.fixedExpensesMaster = [];
       renderApp();
       return true;
     } catch (e) {
@@ -87,6 +86,7 @@ function syncWithGAS() {
       appState.rawData = response.data;
       if (!appState.rawData.expColors) appState.rawData.expColors = {};
       if (!appState.rawData.incColors) appState.rawData.incColors = {};
+      if (!appState.rawData.fixedExpensesMaster) appState.rawData.fixedExpensesMaster = [];
       saveLocalCache();
       renderApp();
     }
@@ -159,12 +159,91 @@ function renderApp() {
   document.getElementById("sum-expense").innerText = `¥${totalExp.toLocaleString()}`;
   document.getElementById("sum-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
 
+  renderFixedExpensesGrid(prefix, mExpenses);
   renderDashboardGrid(mExpenses);
   renderMemberIncome(mIncomes);
-  renderMemberExpense(mExpenses); // 人ごとの個人支出を描画
+  renderMemberExpense(mExpenses);
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
   renderCategoryManageList();
+}
+
+// 当月の固定費グリッド描画（当月以降のみデフォルト反映＋入力機能）
+function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
+  const grid = document.getElementById("fixed-expense-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  let totalFixedAmount = 0;
+  const activeMasters = appState.rawData.fixedExpensesMaster.filter(item => {
+    return !item.startMonth || item.startMonth <= prefixYearMonth;
+  });
+
+  activeMasters.forEach((item, i) => {
+    const existingRecord = mExpenses.find(e => e.category === item.name);
+    const currentAmount = existingRecord ? existingRecord.amount : item.defaultAmount;
+    totalFixedAmount += currentAmount;
+
+    const color = item.color || COLOR_PALETTE[i % COLOR_PALETTE.length];
+
+    const card = document.createElement("div");
+    card.className = "cat-card";
+    card.innerHTML = `
+      <div class="cat-header">
+        <div class="cat-title-wrap">
+          <span class="cat-dot" style="background:${escapeHTML(color)}"></span>
+          <span>${escapeHTML(item.name)}</span>
+        </div>
+        <input type="number" class="form-control fixed-amount-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" style="width:110px; text-align:right; font-weight:700;">
+      </div>
+      <div class="cat-footer">
+        <span>標準: ¥${item.defaultAmount.toLocaleString()}</span>
+        <span class="remaining-val">${existingRecord ? "記録済み" : "デフォルト"}</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  document.querySelectorAll(".fixed-amount-input").forEach(input => {
+    input.addEventListener("change", (e) => {
+      const cat = e.target.dataset.cat;
+      const val = Number(e.target.value) || 0;
+      const date = `${prefixYearMonth}-01`;
+
+      let existingRecord = appState.rawData.expenses.find(exp => exp.date && exp.date.startsWith(prefixYearMonth) && exp.category === cat);
+
+      if (existingRecord) {
+        existingRecord.amount = val;
+      } else {
+        const newRecord = {
+          id: "temp_" + Date.now(),
+          sheetName: "現金等",
+          rowIndex: null,
+          date: date,
+          category: cat,
+          memo: "固定費",
+          amount: val,
+          member: ""
+        };
+        appState.rawData.expenses.unshift(newRecord);
+      }
+
+      saveLocalCache();
+      renderApp();
+
+      sendPostDataBackground({
+        action: "saveFixedExpenseRecord",
+        payload: {
+          date: date,
+          category: cat,
+          amount: val,
+          memo: "固定費"
+        }
+      });
+    });
+  });
+
+  document.getElementById("sum-fixed-expense").innerText = `¥${totalFixedAmount.toLocaleString()}`;
 }
 
 function renderDashboardGrid(mExpenses) {
@@ -236,7 +315,6 @@ function renderMemberIncome(mIncomes) {
   });
 }
 
-// 人ごとの個人支出の個別集計描画
 function renderMemberExpense(mExpenses) {
   const container = document.getElementById("member-expense-container");
   if (!container) return;
@@ -400,6 +478,27 @@ function renderCategoryManageList() {
     incContainer.appendChild(row);
   });
 
+  const fixedContainer = document.getElementById("fixed-category-manage-list");
+  if (fixedContainer) {
+    fixedContainer.innerHTML = "";
+    appState.rawData.fixedExpensesMaster.forEach((item, i) => {
+      const color = item.color || COLOR_PALETTE[i % COLOR_PALETTE.length];
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.innerHTML = `
+        <div class="row-left">
+          <span class="cat-dot" style="background:${escapeHTML(color)}"></span>
+          <span class="row-memo">${escapeHTML(item.name)}</span>
+        </div>
+        <div class="row-right">
+          <span style="font-size:0.85rem; color:var(--text-muted);">標準額: ¥${item.defaultAmount.toLocaleString()}</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);">(${escapeHTML(item.startMonth)}~)</span>
+        </div>
+      `;
+      fixedContainer.appendChild(row);
+    });
+  }
+
   attachCategoryManagementEvents();
 }
 
@@ -470,15 +569,20 @@ function attachCategoryManagementEvents() {
   });
 }
 
+// カテゴリーの並び替えロジック（色データも追従）
 function moveCategory(type, index, direction) {
   const list = type === "支出" ? appState.rawData.expCategories : appState.rawData.incCategories;
+  const colorsMap = type === "支出" ? appState.rawData.expColors : appState.rawData.incColors;
   const targetIndex = index + direction;
 
   if (targetIndex < 0 || targetIndex >= list.length) return;
 
-  const temp = list[index];
-  list[index] = list[targetIndex];
-  list[targetIndex] = temp;
+  const currentCat = list[index];
+  const targetCat = list[targetIndex];
+
+  // 名前の位置を移動
+  list[index] = targetCat;
+  list[targetIndex] = currentCat;
 
   saveLocalCache();
   renderApp();
@@ -488,7 +592,7 @@ function moveCategory(type, index, direction) {
     payload: {
       type,
       categories: list,
-      colors: type === "支出" ? appState.rawData.expColors : appState.rawData.incColors
+      colors: colorsMap
     }
   });
 }
@@ -542,7 +646,7 @@ function handleTransactionSubmit(e) {
     date: document.getElementById("tx-date").value,
     category: document.getElementById("tx-category").value,
     amount: Number(document.getElementById("tx-amount").value),
-    member: document.getElementById("tx-member").value || "", // 空欄の場合は家計出費
+    member: document.getElementById("tx-member").value || "",
     memo: document.getElementById("tx-memo").value
   };
 
@@ -550,7 +654,7 @@ function handleTransactionSubmit(e) {
 
   const tempItem = {
     id: "temp_" + Date.now(),
-    sheetName: type === "expense" ? "現金等" : "収入", // 手入力は「現金等」シートへ記録
+    sheetName: type === "expense" ? "現金等" : "収入",
     rowIndex: null,
     date: payload.date,
     category: payload.category,
@@ -587,6 +691,28 @@ function handleAddCategory(e) {
   const budget = Number(document.getElementById("new-cat-budget").value) || 0;
 
   if (!name) return;
+
+  const currentYearMonth = `${appState.currentDate.getFullYear()}-${String(appState.currentDate.getMonth() + 1).padStart(2, '0')}`;
+
+  if (type === "固定費") {
+    const newFixed = {
+      name: name,
+      defaultAmount: budget,
+      color: COLOR_PALETTE[appState.rawData.fixedExpensesMaster.length % COLOR_PALETTE.length],
+      startMonth: currentYearMonth
+    };
+    appState.rawData.fixedExpensesMaster.push(newFixed);
+
+    document.getElementById("form-add-category").reset();
+    saveLocalCache();
+    renderApp();
+
+    sendPostDataBackground({
+      action: "addFixedExpense",
+      payload: newFixed
+    });
+    return;
+  }
 
   if (type === "支出") {
     if (!appState.rawData.expCategories.includes(name)) {
@@ -643,12 +769,11 @@ function openModal(type) {
   const categories = type === "expense" ? appState.rawData.expCategories : appState.rawData.incCategories;
   categories.forEach(c => catSelect.add(new Option(c, c)));
 
-  // 個人支出 (名簿) セレクトボックスの生成（デフォルトは空欄）
   const memSelect = document.getElementById("tx-member");
   memSelect.innerHTML = "";
   memSelect.add(new Option("選択なし（家計）", ""));
   appState.rawData.members.forEach(m => memSelect.add(new Option(m, m)));
-  memSelect.value = ""; // デフォルトを空欄に設定
+  memSelect.value = "";
 
   document.getElementById("modal-transaction").classList.remove("hidden");
 }
