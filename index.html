@@ -65,6 +65,13 @@
         </div>
       </div>
 
+      <!-- 今月の固定費セクション (新規追加) -->
+      <div class="dashboard-subhead">
+        <h2>今月の固定費</h2>
+        <span class="budget-total-text">固定費合計 <strong id="sum-fixed-expense">¥0</strong></span>
+      </div>
+      <div id="fixed-expense-grid" class="category-grid" style="margin-bottom: 2.5rem;"></div>
+
       <div class="dashboard-subhead">
         <h2>カテゴリー別の支出と予算</h2>
         <span class="budget-total-text">予算合計 <strong id="sum-total-budget">¥0</strong></span>
@@ -79,7 +86,7 @@
       </div>
       <div id="member-income-container" class="member-income-list"></div>
 
-      <!-- 人ごとの個人支出セクション (新規追加) -->
+      <!-- 人ごとの個人支出セクション -->
       <div class="dashboard-subhead" style="margin-top: 2.5rem;">
         <h2>人ごとの個人支出</h2>
       </div>
@@ -94,7 +101,6 @@
           <h1 class="main-title">支出</h1>
         </div>
         <div class="action-toolbar">
-          <!-- ボタンを黒背景・白文字(btn-primary)に変更 -->
           <button class="btn btn-primary" onclick="openExpenseModal()">+ 現金などを手入力</button>
         </div>
       </div>
@@ -140,7 +146,7 @@
       <div class="section-header">
         <div>
           <span class="sub-title">CATEGORIES</span>
-          <h1 class="main-title">カテゴリー・予算</h1>
+          <h1 class="main-title">カテゴリー・予算・固定費</h1>
         </div>
       </div>
 
@@ -149,9 +155,10 @@
           <select id="new-cat-type" class="form-control">
             <option value="支出">支出</option>
             <option value="収入">収入</option>
+            <option value="固定費">固定費</option>
           </select>
-          <input type="text" id="new-cat-name" class="form-control" placeholder="カテゴリー名" required>
-          <input type="number" id="new-cat-budget" class="form-control" placeholder="月の予算（支出のみ）">
+          <input type="text" id="new-cat-name" class="form-control" placeholder="名称" required>
+          <input type="number" id="new-cat-budget" class="form-control" placeholder="予算 / デフォルト額">
           <button type="submit" class="btn btn-primary">+ 追加</button>
         </form>
       </div>
@@ -160,7 +167,10 @@
       <div id="exp-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
 
       <h2 class="subhead-title">収入カテゴリー</h2>
-      <div id="inc-category-manage-list" class="item-list"></div>
+      <div id="inc-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
+
+      <h2 class="subhead-title">固定費マスター設定</h2>
+      <div id="fixed-category-manage-list" class="item-list"></div>
     </section>
 
   </main>
@@ -184,7 +194,6 @@
           <input type="number" id="tx-amount" class="form-control" placeholder="0" required>
         </div>
         <div class="form-group">
-          <!-- 「担当者（名簿）」から「個人支出」へ名称変更 -->
           <label>個人支出</label>
           <select id="tx-member" class="form-control"></select>
         </div>
