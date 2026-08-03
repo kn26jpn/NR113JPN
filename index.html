@@ -100,8 +100,12 @@
           <span class="sub-title">EXPENSES</span>
           <h1 class="main-title">支出</h1>
         </div>
-        <div class="action-toolbar">
+        <div class="action-toolbar" style="display: flex; gap: 0.5rem;">
+          <!-- 新規追加ボタン（「+ 現金などを手入力」の左横に配置） -->
+          <button id="btn-ai-classify" class="btn btn-secondary">✨ AIで自動分類</button>
+          <button id="btn-csv-import" class="btn btn-secondary">📁 CSV取り込み</button>
           <button class="btn btn-primary" onclick="openExpenseModal()">+ 現金などを手入力</button>
+          <input type="file" id="csv-file-input" accept=".csv" class="hidden">
         </div>
       </div>
 
