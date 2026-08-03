@@ -114,6 +114,12 @@ body {
   font-size: 1rem;
   cursor: pointer;
   color: var(--text-muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+.arrow-btn:hover {
+  background-color: #f0eee9;
 }
 .month-display {
   font-weight: 600;
@@ -194,6 +200,7 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 .progress-bar-bg {
   width: 100%;
@@ -264,7 +271,7 @@ body {
 .row-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 .row-date {
   font-size: 0.85rem;
@@ -282,7 +289,7 @@ body {
 .row-right {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.85rem;
 }
 .category-select {
   border: 1px solid var(--border-color);
@@ -303,6 +310,25 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   font-size: 1.1rem;
+  padding: 0 0.2rem;
+}
+
+/* カラーピッカー要素のスタイリング */
+.category-color-picker {
+  border: none;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  background: none;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.category-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.category-color-picker::-webkit-color-swatch {
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
 }
 
 /* Form & Buttons */
