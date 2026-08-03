@@ -225,7 +225,7 @@ body {
   font-weight: 600;
 }
 
-/* Member Income Card */
+/* Member Income / Expense Card */
 .member-income-list {
   display: flex;
   flex-direction: column;
