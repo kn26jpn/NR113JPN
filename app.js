@@ -168,7 +168,6 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// 当月の固定費グリッド描画（当月以降のみデフォルト反映＋入力機能）
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
@@ -253,7 +252,9 @@ function renderDashboardGrid(mExpenses) {
   const expMap = {};
   appState.rawData.expCategories.forEach(c => expMap[c] = 0);
   mExpenses.forEach(e => {
-    expMap[e.category] = (expMap[e.category] || 0) + e.amount;
+    if (e.category) {
+      expMap[e.category] = (expMap[e.category] || 0) + e.amount;
+    }
   });
 
   let totalBudget = 0;
@@ -342,6 +343,7 @@ function renderMemberExpense(mExpenses) {
   });
 }
 
+// 支出一覧描画（カテゴリー未設定時は空欄選択）
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
   container.innerHTML = "";
@@ -353,7 +355,9 @@ function renderExpenseList(mExpenses) {
     const row = document.createElement("div");
     row.className = "list-row";
     
-    const catOptions = appState.rawData.expCategories.map(c => 
+    // 空欄オプションを先頭に追加
+    let catOptions = `<option value="" ${!item.category ? 'selected' : ''}>-- 未設定 --</option>`;
+    catOptions += appState.rawData.expCategories.map(c => 
       `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
     ).join("");
 
@@ -397,7 +401,8 @@ function renderIncomeList(mIncomes) {
     const row = document.createElement("div");
     row.className = "list-row";
 
-    const catOptions = appState.rawData.incCategories.map(c => 
+    let catOptions = `<option value="" ${!item.category ? 'selected' : ''}>-- 未設定 --</option>`;
+    catOptions += appState.rawData.incCategories.map(c => 
       `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
     ).join("");
 
@@ -569,7 +574,7 @@ function attachCategoryManagementEvents() {
   });
 }
 
-// カテゴリーの並び替えロジック（色データも追従）
+// カテゴリー並び替え（名前配列の入れ替えとカラーデータの同期を修正）
 function moveCategory(type, index, direction) {
   const list = type === "支出" ? appState.rawData.expCategories : appState.rawData.incCategories;
   const colorsMap = type === "支出" ? appState.rawData.expColors : appState.rawData.incColors;
@@ -577,12 +582,10 @@ function moveCategory(type, index, direction) {
 
   if (targetIndex < 0 || targetIndex >= list.length) return;
 
-  const currentCat = list[index];
-  const targetCat = list[targetIndex];
-
-  // 名前の位置を移動
-  list[index] = targetCat;
-  list[targetIndex] = currentCat;
+  // 配列要素の順序入れ替え
+  const temp = list[index];
+  list[index] = list[targetIndex];
+  list[targetIndex] = temp;
 
   saveLocalCache();
   renderApp();
@@ -766,8 +769,12 @@ function openModal(type) {
 
   const catSelect = document.getElementById("tx-category");
   catSelect.innerHTML = "";
+  
+  // モーダル選択時も空欄オプションを追加
+  catSelect.add(new Option("-- 未設定 --", ""));
   const categories = type === "expense" ? appState.rawData.expCategories : appState.rawData.incCategories;
   categories.forEach(c => catSelect.add(new Option(c, c)));
+  catSelect.value = "";
 
   const memSelect = document.getElementById("tx-member");
   memSelect.innerHTML = "";
