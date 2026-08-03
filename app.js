@@ -64,44 +64,31 @@ function initToolbarButtons() {
 
 // AI自動分類イベントハンドラー
 async function handleAIClassify() {
-  const unclassifiedItems = appState.rawData.expenses.filter(e => !e.category || e.category.trim() === "");
-
-  if (unclassifiedItems.length === 0) {
-    alert("「未設定」の支出データはありません。");
-    return;
-  }
-
   const btnAI = document.getElementById("btn-ai-classify");
   const originalText = btnAI.innerText;
-  btnAI.innerText = "⏳ 分類中...";
+  btnAI.innerText = "⏳ AI分類中...";
   btnAI.disabled = true;
 
   try {
-    const payload = {
-      targetItems: unclassifiedItems,
-      categories: appState.rawData.expCategories
-    };
-
     const response = await fetch(GAS_URL, {
       method: "POST",
       redirect: "follow",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "autoClassifyAI", payload })
+      body: JSON.stringify({ action: "autoClassifyAI" })
     });
 
     const result = await response.json();
 
-    if (result.status === "success" && result.updatedItems) {
-      result.updatedItems.forEach(up => {
-        const item = appState.rawData.expenses.find(e => e.id === up.id);
-        if (item) item.category = up.category;
-      });
-
-      saveLocalCache();
-      renderApp();
-      alert(`${result.updatedItems.length}件の支出をAIで自動分類しました。`);
+    if (result.status === "success") {
+      const count = result.classifiedCount || 0;
+      if (count > 0) {
+        alert(`${count}件のAMEX未設定支出をAIで自動分類しました！最新データを更新します。`);
+        syncWithGAS();
+      } else {
+        alert("AMEXシートにカテゴリーが空欄の支出はありませんでした。");
+      }
     } else {
-      alert("AI自動分類に失敗しました。");
+      alert("AI自動分類処理に失敗しました: " + (result.message || ""));
     }
   } catch (err) {
     console.error("AI分類エラー:", err);
@@ -112,7 +99,7 @@ async function handleAIClassify() {
   }
 }
 
-// CSVファイル読み込みハンドラー (AMEXシートの最終行の次へ追加)
+// CSVファイル読み込みハンドラー
 function handleCSVImport(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -126,7 +113,7 @@ function handleCSVImport(e) {
     for (let i = 0; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const cols = parseCSVLine(lines[i]);
-      if (cols.length >= 6) { // 日付や金額等を含む標準行
+      if (cols.length >= 6) {
         rows.push(cols);
       }
     }
@@ -136,7 +123,6 @@ function handleCSVImport(e) {
       return;
     }
 
-    // ヘッダー行が含まれている場合は除外
     if (rows[0][0].includes("利用") || rows[0][0].includes("日付")) {
       rows.shift();
     }
@@ -152,10 +138,9 @@ function handleCSVImport(e) {
     });
   };
 
-  reader.readAsText(file, "Shift_JIS"); // 日本のカード明細標準エンコーディング
+  reader.readAsText(file, "Shift_JIS");
 }
 
-// 簡易CSVパース関数
 function parseCSVLine(line) {
   const result = [];
   let start = 0;
