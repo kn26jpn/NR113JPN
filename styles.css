@@ -194,6 +194,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+/* タップ可能カードのホバー・アクティブ演出 */
+.clickable-card {
+  cursor: pointer;
+}
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 .cat-header {
   display: flex;
@@ -421,6 +430,42 @@ body {
   margin-top: 1.5rem;
 }
 
+/* 明細詳細モーダル専用スタイル */
+.detail-modal-card {
+  max-width: 520px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+.detail-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.close-modal-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.2rem 0.5rem;
+}
+.detail-summary-bar {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+.detail-item-list {
+  overflow-y: auto;
+  padding-right: 2px;
+  max-height: 55vh;
+}
+
 .hidden { display: none !important; }
 
 /* -----------------------------------------------------------------------------
@@ -490,5 +535,8 @@ body {
   }
   .sub-amount-val {
     font-size: 0.75rem;
+  }
+  .detail-modal-card {
+    padding: 1.25rem;
   }
 }
