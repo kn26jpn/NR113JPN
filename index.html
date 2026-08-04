@@ -194,7 +194,6 @@
           <input type="number" id="tx-amount" class="form-control amount-step-input" placeholder="0" required>
         </div>
         <div class="form-group">
-          <!-- モーダルの種類に応じてJavaScript側で「個人支出」/「個人収入」に動的変更されます -->
           <label id="modal-member-label">個人支出</label>
           <select id="tx-member" class="form-control"></select>
         </div>
@@ -207,6 +206,18 @@
           <button type="submit" class="btn btn-primary">保存</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: カテゴリー内明細一覧モーダル (新規追加) -->
+  <div id="modal-category-detail" class="modal-overlay hidden">
+    <div class="modal-card detail-modal-card">
+      <div class="detail-modal-header">
+        <h3 id="cat-detail-title">カテゴリー明細</h3>
+        <button type="button" class="close-modal-btn" onclick="closeCatDetailModal()">✕</button>
+      </div>
+      <div id="cat-detail-summary" class="detail-summary-bar">0件 / ¥0</div>
+      <div id="cat-detail-list" class="item-list detail-item-list"></div>
     </div>
   </div>
 
