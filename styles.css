@@ -156,7 +156,6 @@ body {
   font-size: 1.75rem;
   font-weight: 700;
 }
-/* 個人支出除外（家計共通）サブ金額の表示スタイル */
 .sub-amount-val {
   font-size: 0.8rem;
   font-weight: 600;
