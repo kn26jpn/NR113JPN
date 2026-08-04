@@ -48,11 +48,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
   
-  // キーボードの上下キー操作で1,000円刻みで変動させる制御ハンドラー
   attachAmountStepKeyEvents();
 });
 
-// 金額入力欄に対する1,000円ステップキーイベントの設定
 function attachAmountStepKeyEvents() {
   document.addEventListener("keydown", (e) => {
     if (e.target && e.target.classList.contains("amount-step-input")) {
