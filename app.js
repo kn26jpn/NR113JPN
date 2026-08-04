@@ -202,6 +202,7 @@ function renderApp() {
   renderCategoryManageList();
 }
 
+// ダッシュボード「カテゴリー別の支出と予算」描画（タップで明細ポップアップ起動）
 function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -227,7 +228,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
     const progressPercent = budget > 0 ? Math.min(100, Math.round((amount / budget) * 100)) : 0;
 
     const card = document.createElement("div");
-    card.className = "cat-card";
+    card.className = "cat-card clickable-card";
     card.innerHTML = `
       <div class="cat-header">
         <div class="cat-title-wrap">
@@ -240,13 +241,19 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
         <div class="progress-bar-fill" style="width: ${progressPercent}%; background-color: ${escapeHTML(color)};"></div>
       </div>
       <div class="cat-footer">
-        <div class="input-with-yen">
+        <div class="input-with-yen" onclick="event.stopPropagation()">
           <span>予算 ¥</span>
           <input type="number" class="form-control monthly-budget-input amount-step-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:90px; text-align:right; font-weight:600; padding:0.2rem 0.4rem;">
         </div>
         <span class="remaining-val">残り ¥${remaining.toLocaleString()}</span>
       </div>
     `;
+
+    // カード全体クリック(タップ)で明細モーダルを表示
+    card.addEventListener("click", () => {
+      openCatDetailModal(cat, prefixYearMonth);
+    });
+
     grid.appendChild(card);
   });
 
@@ -275,6 +282,56 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   });
 
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
+}
+
+// カテゴリーごとの当月明細モーダル表示処理（新規追加）
+function openCatDetailModal(categoryName, prefixYearMonth) {
+  const modal = document.getElementById("modal-category-detail");
+  const title = document.getElementById("cat-detail-title");
+  const summary = document.getElementById("cat-detail-summary");
+  const container = document.getElementById("cat-detail-list");
+
+  if (!modal || !container) return;
+
+  // 当月の該当カテゴリー明細を抽出
+  const matchedExpenses = appState.rawData.expenses.filter(e => {
+    return e.date && e.date.startsWith(prefixYearMonth) && e.category === categoryName;
+  });
+
+  const totalAmount = matchedExpenses.reduce((s, item) => s + item.amount, 0);
+
+  title.innerText = `${categoryName} の明細`;
+  summary.innerText = `${matchedExpenses.length}件 / ¥${totalAmount.toLocaleString()}`;
+  container.innerHTML = "";
+
+  if (matchedExpenses.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:2rem 0;">このカテゴリーの当月明細はありません</div>`;
+  } else {
+    matchedExpenses.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.innerHTML = `
+        <div class="row-left">
+          <span class="row-date">${item.date ? escapeHTML(item.date.substring(5)) : ''}</span>
+          <div>
+            <span class="row-memo">${escapeHTML(item.memo || '(内容なし)')}</span>
+            ${item.member ? `<span class="row-submemo">個人支出: ${escapeHTML(item.member)}</span>` : ''}
+          </div>
+        </div>
+        <div class="row-right">
+          <span class="row-amount">¥${item.amount.toLocaleString()}</span>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  modal.classList.remove("hidden");
+}
+
+function closeCatDetailModal() {
+  const modal = document.getElementById("modal-category-detail");
+  if (modal) modal.classList.add("hidden");
 }
 
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
@@ -887,7 +944,6 @@ function openModal(type) {
   document.getElementById("tx-type").value = type;
   document.getElementById("modal-tx-title").innerText = type === "expense" ? "支出の手入力" : "収入の追加";
   
-  // ラベルテキストの動的変更（支出手入力時は「個人支出」、収入追加時は「個人収入」）
   const memberLabel = document.getElementById("modal-member-label");
   if (memberLabel) {
     memberLabel.innerText = type === "expense" ? "個人支出" : "個人収入";
