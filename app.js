@@ -188,7 +188,6 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
 
   appState.rawData.expCategories.forEach((cat, i) => {
     const amount = expMap[cat] || 0;
-    
     const budget = currentMonthBudgets[cat] !== undefined ? currentMonthBudgets[cat] : (appState.rawData.budgets[cat] || 0);
     const remaining = budget - amount;
     totalBudget += budget;
@@ -467,7 +466,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（固定費のカラーピッカー・標準額変更機能を追加）
+// カテゴリー管理一覧の描画（固定費欄にも丸型カラーピッカー＆標準額変更入力欄を追加）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -497,6 +496,30 @@ function renderCategoryManageList() {
     expContainer.appendChild(row);
   });
 
+  const fixedContainer = document.getElementById("fixed-category-manage-list");
+  if (fixedContainer) {
+    fixedContainer.innerHTML = "";
+    appState.rawData.fixedExpensesMaster.forEach((item, i) => {
+      const color = item.color || COLOR_PALETTE[i % COLOR_PALETTE.length];
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.innerHTML = `
+        <div class="row-left">
+          <input type="color" class="fixed-color-picker" data-name="${escapeHTML(item.name)}" value="${escapeHTML(color)}">
+          <span class="row-memo">${escapeHTML(item.name)}</span>
+        </div>
+        <div class="row-right">
+          <span style="font-size:0.85rem; color:var(--text-muted);">標準額</span>
+          <div class="input-with-yen">
+            <span>¥</span>
+            <input type="number" class="form-control fixed-default-amount-input" data-name="${escapeHTML(item.name)}" value="${item.defaultAmount}" step="1000" style="width:100px;">
+          </div>
+        </div>
+      `;
+      fixedContainer.appendChild(row);
+    });
+  }
+
   const incContainer = document.getElementById("inc-category-manage-list");
   incContainer.innerHTML = "";
 
@@ -518,31 +541,6 @@ function renderCategoryManageList() {
     `;
     incContainer.appendChild(row);
   });
-
-  // 固定費管理（カラー選択および標準額変更機能を追加）
-  const fixedContainer = document.getElementById("fixed-category-manage-list");
-  if (fixedContainer) {
-    fixedContainer.innerHTML = "";
-    appState.rawData.fixedExpensesMaster.forEach((item, i) => {
-      const color = item.color || COLOR_PALETTE[i % COLOR_PALETTE.length];
-      const row = document.createElement("div");
-      row.className = "list-row";
-      row.innerHTML = `
-        <div class="row-left">
-          <input type="color" class="fixed-color-picker" data-index="${i}" value="${escapeHTML(color)}">
-          <span class="row-memo">${escapeHTML(item.name)}</span>
-        </div>
-        <div class="row-right">
-          <span style="font-size:0.85rem; color:var(--text-muted);">標準額</span>
-          <div class="input-with-yen">
-            <span>¥</span>
-            <input type="number" class="form-control fixed-master-amount-input" data-index="${i}" value="${item.defaultAmount}" step="1000" style="width:100px;">
-          </div>
-        </div>
-      `;
-      fixedContainer.appendChild(row);
-    });
-  }
 
   attachCategoryManagementEvents();
 }
@@ -573,39 +571,41 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 固定費カラーピッカー変更イベント
+  // 固定費のカラーピッカー変更イベント
   document.querySelectorAll(".fixed-color-picker").forEach(picker => {
     picker.addEventListener("change", (e) => {
-      const idx = Number(e.target.dataset.index);
+      const name = e.target.dataset.name;
       const newColor = e.target.value;
 
-      if (appState.rawData.fixedExpensesMaster[idx]) {
-        appState.rawData.fixedExpensesMaster[idx].color = newColor;
+      const item = appState.rawData.fixedExpensesMaster.find(f => f.name === name);
+      if (item) {
+        item.color = newColor;
         saveLocalCache();
         renderApp();
 
         sendPostDataBackground({
           action: "updateFixedExpenseMaster",
-          payload: { fixedExpensesMaster: appState.rawData.fixedExpensesMaster }
+          payload: { name, color: newColor }
         });
       }
     });
   });
 
-  // 固定費標準額変更イベント
-  document.querySelectorAll(".fixed-master-amount-input").forEach(input => {
+  // 固定費の標準額変更イベント
+  document.querySelectorAll(".fixed-default-amount-input").forEach(input => {
     input.addEventListener("change", (e) => {
-      const idx = Number(e.target.dataset.index);
+      const name = e.target.dataset.name;
       const val = Number(e.target.value) || 0;
 
-      if (appState.rawData.fixedExpensesMaster[idx]) {
-        appState.rawData.fixedExpensesMaster[idx].defaultAmount = val;
+      const item = appState.rawData.fixedExpensesMaster.find(f => f.name === name);
+      if (item) {
+        item.defaultAmount = val;
         saveLocalCache();
         renderApp();
 
         sendPostDataBackground({
           action: "updateFixedExpenseMaster",
-          payload: { fixedExpensesMaster: appState.rawData.fixedExpensesMaster }
+          payload: { name, amount: val }
         });
       }
     });
