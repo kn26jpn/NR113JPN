@@ -466,7 +466,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（固定費欄にも丸型カラーピッカー＆標準額変更入力欄を追加）
+// カテゴリー管理一覧の描画（固定費の丸型カラーピッカー＆標準額入力欄を生成）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -505,7 +505,7 @@ function renderCategoryManageList() {
       row.className = "list-row";
       row.innerHTML = `
         <div class="row-left">
-          <input type="color" class="fixed-color-picker" data-name="${escapeHTML(item.name)}" value="${escapeHTML(color)}">
+          <input type="color" class="fixed-color-picker category-color-picker" data-name="${escapeHTML(item.name)}" value="${escapeHTML(color)}">
           <span class="row-memo">${escapeHTML(item.name)}</span>
         </div>
         <div class="row-right">
@@ -552,6 +552,8 @@ function attachCategoryManagementEvents() {
       const cat = e.target.dataset.cat;
       const newColor = e.target.value;
 
+      if (!type) return;
+
       if (type === "支出") {
         appState.rawData.expColors[cat] = newColor;
       } else {
@@ -571,7 +573,6 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 固定費のカラーピッカー変更イベント
   document.querySelectorAll(".fixed-color-picker").forEach(picker => {
     picker.addEventListener("change", (e) => {
       const name = e.target.dataset.name;
@@ -591,7 +592,6 @@ function attachCategoryManagementEvents() {
     });
   });
 
-  // 固定費の標準額変更イベント
   document.querySelectorAll(".fixed-default-amount-input").forEach(input => {
     input.addEventListener("change", (e) => {
       const name = e.target.dataset.name;
