@@ -317,7 +317,6 @@ body {
   padding: 0 0.2rem;
 }
 
-/* 入力欄の「¥」プレフィックス付きコンテナ */
 .input-with-yen {
   display: inline-flex;
   align-items: center;
@@ -326,7 +325,6 @@ body {
   font-size: 0.9rem;
 }
 
-/* カラーピッカー要素のスタイリング */
 .category-color-picker {
   border: none;
   width: 24px;
@@ -407,9 +405,6 @@ body {
 
 .hidden { display: none !important; }
 
-/* -----------------------------------------------------------------------------
- * タブレット・スマホ対応レスポンシブデザイン（iPad・各種モバイル画面に最適化）
- * ----------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .header-inner {
     flex-direction: column;
