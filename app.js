@@ -466,7 +466,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（固定費の丸型カラーピッカー＆標準額入力欄を生成）
+// カテゴリー管理一覧の描画（固定費にも丸型カラーピッカークラス category-color-picker を適用）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
