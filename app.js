@@ -171,7 +171,6 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// ダッシュボード描画（予算入力欄に step="1000" を設定）
 function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -190,7 +189,6 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   appState.rawData.expCategories.forEach((cat, i) => {
     const amount = expMap[cat] || 0;
     
-    // 当月個別の予算があればそれを使い、無ければ標準予算を使用
     const budget = currentMonthBudgets[cat] !== undefined ? currentMonthBudgets[cat] : (appState.rawData.budgets[cat] || 0);
     const remaining = budget - amount;
     totalBudget += budget;
@@ -249,7 +247,6 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
-// 当月の固定費描画（入力欄に step="1000" を設定）
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
@@ -470,7 +467,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（「標準予算」表記に変更し step="1000" を付与）
+// カテゴリー管理一覧の描画（固定費のカラーピッカー・標準額変更機能を追加）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -522,6 +519,7 @@ function renderCategoryManageList() {
     incContainer.appendChild(row);
   });
 
+  // 固定費管理（カラー選択および標準額変更機能を追加）
   const fixedContainer = document.getElementById("fixed-category-manage-list");
   if (fixedContainer) {
     fixedContainer.innerHTML = "";
@@ -531,11 +529,15 @@ function renderCategoryManageList() {
       row.className = "list-row";
       row.innerHTML = `
         <div class="row-left">
-          <span class="cat-dot" style="background:${escapeHTML(color)}"></span>
+          <input type="color" class="fixed-color-picker" data-index="${i}" value="${escapeHTML(color)}">
           <span class="row-memo">${escapeHTML(item.name)}</span>
         </div>
         <div class="row-right">
-          <span style="font-size:0.85rem; color:var(--text-muted);">標準額: ¥${item.defaultAmount.toLocaleString()}</span>
+          <span style="font-size:0.85rem; color:var(--text-muted);">標準額</span>
+          <div class="input-with-yen">
+            <span>¥</span>
+            <input type="number" class="form-control fixed-master-amount-input" data-index="${i}" value="${item.defaultAmount}" step="1000" style="width:100px;">
+          </div>
         </div>
       `;
       fixedContainer.appendChild(row);
@@ -568,6 +570,44 @@ function attachCategoryManagementEvents() {
           colors: type === "支出" ? appState.rawData.expColors : appState.rawData.incColors
         }
       });
+    });
+  });
+
+  // 固定費カラーピッカー変更イベント
+  document.querySelectorAll(".fixed-color-picker").forEach(picker => {
+    picker.addEventListener("change", (e) => {
+      const idx = Number(e.target.dataset.index);
+      const newColor = e.target.value;
+
+      if (appState.rawData.fixedExpensesMaster[idx]) {
+        appState.rawData.fixedExpensesMaster[idx].color = newColor;
+        saveLocalCache();
+        renderApp();
+
+        sendPostDataBackground({
+          action: "updateFixedExpenseMaster",
+          payload: { fixedExpensesMaster: appState.rawData.fixedExpensesMaster }
+        });
+      }
+    });
+  });
+
+  // 固定費標準額変更イベント
+  document.querySelectorAll(".fixed-master-amount-input").forEach(input => {
+    input.addEventListener("change", (e) => {
+      const idx = Number(e.target.dataset.index);
+      const val = Number(e.target.value) || 0;
+
+      if (appState.rawData.fixedExpensesMaster[idx]) {
+        appState.rawData.fixedExpensesMaster[idx].defaultAmount = val;
+        saveLocalCache();
+        renderApp();
+
+        sendPostDataBackground({
+          action: "updateFixedExpenseMaster",
+          payload: { fixedExpensesMaster: appState.rawData.fixedExpensesMaster }
+        });
+      }
     });
   });
 
@@ -821,7 +861,6 @@ function openModal(type) {
 
   const memSelect = document.getElementById("tx-member");
   memSelect.innerHTML = "";
-  // 表記を「標準（家計）」に変更
   memSelect.add(new Option("標準（家計）", ""));
   appState.rawData.members.forEach(m => memSelect.add(new Option(m, m)));
   memSelect.value = "";
