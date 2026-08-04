@@ -328,7 +328,7 @@ body {
   color: var(--text-muted);
 }
 
-/* 丸型カラーピッカー要素の統一スタイリング */
+/* 丸型カラーピッカー要素のスタイリング */
 .category-color-picker,
 .fixed-color-picker {
   border: none;
