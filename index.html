@@ -157,12 +157,14 @@
             <option value="収入">収入</option>
           </select>
           <input type="text" id="new-cat-name" class="form-control" placeholder="名称" required>
-          <input type="number" id="new-cat-budget" class="form-control" placeholder="デフォルト予算 / 額">
+          <!-- 表記を「標準予算 / 額」に変更し、step="1000" を追加 -->
+          <input type="number" id="new-cat-budget" class="form-control" placeholder="標準予算 / 額" step="1000">
           <button type="submit" class="btn btn-primary">+ 追加</button>
         </form>
       </div>
 
-      <h2 class="subhead-title">支出カテゴリー（デフォルト予算）</h2>
+      <!-- 表記を「標準予算」に変更 -->
+      <h2 class="subhead-title">支出カテゴリー（標準予算）</h2>
       <div id="exp-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
 
       <h2 class="subhead-title">固定費</h2>
@@ -174,7 +176,7 @@
 
   </main>
 
-  <!-- Modal: 手入力モーダル -->
+  <!-- Modal: 手入力モーダル (各金額入力欄に step="1000" を設定) -->
   <div id="modal-transaction" class="modal-overlay hidden">
     <div class="modal-card">
       <h3 id="modal-tx-title">データ入力</h3>
@@ -190,7 +192,7 @@
         </div>
         <div class="form-group">
           <label>金額</label>
-          <input type="number" id="tx-amount" class="form-control" placeholder="0" required>
+          <input type="number" id="tx-amount" class="form-control" placeholder="0" step="1000" required>
         </div>
         <div class="form-group">
           <label>個人支出</label>
