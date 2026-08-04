@@ -176,10 +176,23 @@ function renderApp() {
   const mIncomes = appState.rawData.incomes.filter(i => i.date && i.date.startsWith(prefix));
 
   const totalExp = mExpenses.reduce((s, item) => s + item.amount, 0);
+  
+  // 個人支出が空欄（＝家計共通の支出）のみを合計
+  const commonExp = mExpenses
+    .filter(e => !e.member || e.member.trim() === "")
+    .reduce((s, item) => s + item.amount, 0);
+
   const totalInc = mIncomes.reduce((s, item) => s + item.amount, 0);
 
   document.getElementById("sum-income").innerText = `¥${totalInc.toLocaleString()}`;
   document.getElementById("sum-expense").innerText = `¥${totalExp.toLocaleString()}`;
+  
+  // 「うち家計（個人支出を除く）」額を表示
+  const commonEl = document.getElementById("sum-expense-common");
+  if (commonEl) {
+    commonEl.innerText = `（うち家計: ¥${commonExp.toLocaleString()}）`;
+  }
+
   document.getElementById("sum-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
 
   renderDashboardGrid(prefix, mExpenses);
