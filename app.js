@@ -97,10 +97,7 @@ function renderAppSkeleton() {
   document.querySelectorAll(".month-display").forEach(el => el.innerText = `${y}年${parseInt(m)}月`);
   
   const grid = document.getElementById("category-budget-grid");
-  if (grid) grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 2rem;">データを読み込んでいます...</div>`;
-
-  const fixedGrid = document.getElementById("fixed-expense-grid");
-  if (fixedGrid) fixedGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1.5rem;">固定費データを読み込んでいます...</div>`;
+  grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 2rem;">データを読み込んでいます...</div>`;
 }
 
 function syncWithGAS() {
@@ -207,7 +204,6 @@ function renderApp() {
 
 function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
-  if (!grid) return;
   grid.innerHTML = "";
 
   const expMap = {};
@@ -281,34 +277,15 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
-// 【安定化改修】今月の固定費描画関数
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
   grid.innerHTML = "";
 
-  const masterList = appState.rawData.fixedExpensesMaster || [];
-
-  if (masterList.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;">固定費マスターが登録されていません</div>`;
-    document.getElementById("sum-fixed-expense").innerText = `¥0`;
-    return;
-  }
-
   let totalFixedAmount = 0;
-
-  // 適用開始年月の判定を安全・柔軟に処理
-  const activeMasters = masterList.filter(item => {
-    if (!item.startMonth || item.startMonth.trim() === "") return true;
-    const itemMonth = item.startMonth.substring(0, 7);
-    return itemMonth <= prefixYearMonth;
+  const activeMasters = appState.rawData.fixedExpensesMaster.filter(item => {
+    return !item.startMonth || item.startMonth <= prefixYearMonth;
   });
-
-  if (activeMasters.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;">今月の対象固定費はありません</div>`;
-    document.getElementById("sum-fixed-expense").innerText = `¥0`;
-    return;
-  }
 
   activeMasters.forEach((item, i) => {
     const existingRecord = mExpenses.find(e => e.category === item.name);
@@ -388,7 +365,6 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
 
 function renderMemberIncome(mIncomes) {
   const container = document.getElementById("member-income-container");
-  if (!container) return;
   container.innerHTML = "";
 
   const memberMap = {};
@@ -440,7 +416,6 @@ function renderMemberExpense(mExpenses) {
 
 function renderExpenseList(mExpenses) {
   const container = document.getElementById("expense-list-container");
-  if (!container) return;
   container.innerHTML = "";
 
   const total = mExpenses.reduce((s, i) => s + i.amount, 0);
@@ -486,7 +461,6 @@ function renderExpenseList(mExpenses) {
 
 function renderIncomeList(mIncomes) {
   const container = document.getElementById("income-list-container");
-  if (!container) return;
   container.innerHTML = "";
 
   const total = mIncomes.reduce((s, i) => s + i.amount, 0);
@@ -532,7 +506,6 @@ function renderIncomeList(mIncomes) {
 
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
-  if (!expContainer) return;
   expContainer.innerHTML = "";
 
   appState.rawData.expCategories.forEach((cat, i) => {
@@ -585,7 +558,6 @@ function renderCategoryManageList() {
   }
 
   const incContainer = document.getElementById("inc-category-manage-list");
-  if (!incContainer) return;
   incContainer.innerHTML = "";
 
   appState.rawData.incCategories.forEach((cat, i) => {
@@ -914,6 +886,13 @@ function openIncomeModal() { openModal("income"); }
 function openModal(type) {
   document.getElementById("tx-type").value = type;
   document.getElementById("modal-tx-title").innerText = type === "expense" ? "支出の手入力" : "収入の追加";
+  
+  // ラベルテキストの動的変更（支出手入力時は「個人支出」、収入追加時は「個人収入」）
+  const memberLabel = document.getElementById("modal-member-label");
+  if (memberLabel) {
+    memberLabel.innerText = type === "expense" ? "個人支出" : "個人収入";
+  }
+
   document.getElementById("tx-date").value = new Date().toISOString().split("T")[0];
 
   const catSelect = document.getElementById("tx-category");
