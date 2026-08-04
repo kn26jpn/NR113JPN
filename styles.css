@@ -318,13 +318,14 @@ body {
   padding: 0 0.2rem;
 }
 
-/* 入力欄の「¥」プレフィックスコンテナ */
+/* 入力欄の「¥」プレフィックス付きコンテナ */
 .input-with-yen {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 /* カラーピッカー要素のスタイリング */
