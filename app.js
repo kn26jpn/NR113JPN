@@ -47,7 +47,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("form-add-category").addEventListener("submit", handleAddCategory);
   document.getElementById("form-transaction").addEventListener("submit", handleTransactionSubmit);
+  
+  // キーボードの上下キー操作で1,000円刻みで変動させる制御ハンドラー
+  attachAmountStepKeyEvents();
 });
+
+// 金額入力欄に対する1,000円ステップキーイベントの設定
+function attachAmountStepKeyEvents() {
+  document.addEventListener("keydown", (e) => {
+    if (e.target && e.target.classList.contains("amount-step-input")) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        let val = Number(e.target.value) || 0;
+        e.target.value = val + 1000;
+        e.target.dispatchEvent(new Event("change"));
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        let val = Number(e.target.value) || 0;
+        e.target.value = Math.max(0, val - 1000);
+        e.target.dispatchEvent(new Event("change"));
+      }
+    }
+  });
+}
 
 function loadLocalCacheAndRender() {
   const cached = localStorage.getItem(CACHE_KEY);
@@ -211,7 +233,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
       <div class="cat-footer">
         <div class="input-with-yen">
           <span>予算 ¥</span>
-          <input type="number" class="form-control monthly-budget-input" data-cat="${escapeHTML(cat)}" value="${budget}" step="1000" style="width:90px; text-align:right; font-weight:600; padding:0.2rem 0.4rem;">
+          <input type="number" class="form-control monthly-budget-input amount-step-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:90px; text-align:right; font-weight:600; padding:0.2rem 0.4rem;">
         </div>
         <span class="remaining-val">残り ¥${remaining.toLocaleString()}</span>
       </div>
@@ -273,7 +295,7 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
         </div>
         <div class="input-with-yen">
           <span>¥</span>
-          <input type="number" class="form-control fixed-amount-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" step="1000" style="width:100px; text-align:right; font-weight:700;">
+          <input type="number" class="form-control fixed-amount-input amount-step-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" style="width:100px; text-align:right; font-weight:700;">
         </div>
       </div>
       <div class="cat-footer">
@@ -466,7 +488,6 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（固定費にも丸型カラーピッカークラス category-color-picker を適用）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -488,7 +509,7 @@ function renderCategoryManageList() {
         <span style="font-size:0.85rem; color:var(--text-muted);">標準予算</span>
         <div class="input-with-yen">
           <span>¥</span>
-          <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" step="1000" style="width:100px;">
+          <input type="number" class="form-control budget-update-input amount-step-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:100px;">
         </div>
         <button class="btn-delete btn-delete-cat" data-type="支出" data-cat="${escapeHTML(cat)}">🗑</button>
       </div>
@@ -512,7 +533,7 @@ function renderCategoryManageList() {
           <span style="font-size:0.85rem; color:var(--text-muted);">標準額</span>
           <div class="input-with-yen">
             <span>¥</span>
-            <input type="number" class="form-control fixed-default-amount-input" data-name="${escapeHTML(item.name)}" value="${item.defaultAmount}" step="1000" style="width:100px;">
+            <input type="number" class="form-control fixed-default-amount-input amount-step-input" data-name="${escapeHTML(item.name)}" value="${item.defaultAmount}" style="width:100px;">
           </div>
         </div>
       `;
