@@ -146,7 +146,7 @@ body {
 .summary-box {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 .card-caption {
   font-size: 0.85rem;
@@ -155,6 +155,14 @@ body {
 .amount-val {
   font-size: 1.75rem;
   font-weight: 700;
+}
+/* 個人支出除外（家計共通）サブ金額の表示スタイル */
+.sub-amount-val {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+  white-space: nowrap;
 }
 
 .dashboard-subhead {
@@ -480,5 +488,8 @@ body {
   }
   .amount-val {
     font-size: 1.5rem;
+  }
+  .sub-amount-val {
+    font-size: 0.75rem;
   }
 }
