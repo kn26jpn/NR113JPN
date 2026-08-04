@@ -171,7 +171,7 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// ダッシュボード描画（カテゴリー別予算を月毎に個別入力可能に改修）
+// ダッシュボード描画（予算入力欄に step="1000" を設定）
 function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -190,7 +190,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   appState.rawData.expCategories.forEach((cat, i) => {
     const amount = expMap[cat] || 0;
     
-    // 当月個別の予算があればそれを使い、無ければデフォルト予算を使用
+    // 当月個別の予算があればそれを使い、無ければ標準予算を使用
     const budget = currentMonthBudgets[cat] !== undefined ? currentMonthBudgets[cat] : (appState.rawData.budgets[cat] || 0);
     const remaining = budget - amount;
     totalBudget += budget;
@@ -214,7 +214,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
       <div class="cat-footer">
         <div class="input-with-yen">
           <span>予算 ¥</span>
-          <input type="number" class="form-control monthly-budget-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:90px; text-align:right; font-weight:600; padding:0.2rem 0.4rem;">
+          <input type="number" class="form-control monthly-budget-input" data-cat="${escapeHTML(cat)}" value="${budget}" step="1000" style="width:90px; text-align:right; font-weight:600; padding:0.2rem 0.4rem;">
         </div>
         <span class="remaining-val">残り ¥${remaining.toLocaleString()}</span>
       </div>
@@ -222,7 +222,6 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
     grid.appendChild(card);
   });
 
-  // 当月予算入力変更イベント
   document.querySelectorAll(".monthly-budget-input").forEach(input => {
     input.addEventListener("change", (e) => {
       const cat = e.target.dataset.cat;
@@ -250,6 +249,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
+// 当月の固定費描画（入力欄に step="1000" を設定）
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
@@ -277,7 +277,7 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
         </div>
         <div class="input-with-yen">
           <span>¥</span>
-          <input type="number" class="form-control fixed-amount-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" style="width:100px; text-align:right; font-weight:700;">
+          <input type="number" class="form-control fixed-amount-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" step="1000" style="width:100px; text-align:right; font-weight:700;">
         </div>
       </div>
       <div class="cat-footer">
@@ -470,7 +470,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（「支出カテゴリー」デフォルト予算設定）
+// カテゴリー管理一覧の描画（「標準予算」表記に変更し step="1000" を付与）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -489,10 +489,10 @@ function renderCategoryManageList() {
       <div class="row-right">
         <button class="arrow-btn btn-move-up" data-type="支出" data-index="${i}">▲</button>
         <button class="arrow-btn btn-move-down" data-type="支出" data-index="${i}">▼</button>
-        <span style="font-size:0.85rem; color:var(--text-muted);">デフォルト予算</span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">標準予算</span>
         <div class="input-with-yen">
           <span>¥</span>
-          <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:100px;">
+          <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" step="1000" style="width:100px;">
         </div>
         <button class="btn-delete btn-delete-cat" data-type="支出" data-cat="${escapeHTML(cat)}">🗑</button>
       </div>
@@ -821,7 +821,8 @@ function openModal(type) {
 
   const memSelect = document.getElementById("tx-member");
   memSelect.innerHTML = "";
-  memSelect.add(new Option("選択なし（家計）", ""));
+  // 表記を「標準（家計）」に変更
+  memSelect.add(new Option("標準（家計）", ""));
   appState.rawData.members.forEach(m => memSelect.add(new Option(m, m)));
   memSelect.value = "";
 
