@@ -171,7 +171,7 @@ function renderApp() {
   renderCategoryManageList();
 }
 
-// カテゴリー別の支出と予算描画（当月の予算をインラインで変更可能）
+// ダッシュボード描画（カテゴリー別予算を月毎に個別入力可能に改修）
 function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -185,15 +185,13 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   });
 
   let totalBudget = 0;
+  const currentMonthBudgets = appState.rawData.monthlyBudgets[prefixYearMonth] || {};
 
   appState.rawData.expCategories.forEach((cat, i) => {
     const amount = expMap[cat] || 0;
-
-    // 当月のオーバーライド予算が存在すればそれを採用、なければ標準（デフォルト）予算を採用
-    let budget = (appState.rawData.monthlyBudgets[prefixYearMonth] && appState.rawData.monthlyBudgets[prefixYearMonth][cat] !== undefined)
-      ? appState.rawData.monthlyBudgets[prefixYearMonth][cat]
-      : (appState.rawData.budgets[cat] || 0);
-
+    
+    // 当月個別の予算があればそれを使い、無ければデフォルト予算を使用
+    const budget = currentMonthBudgets[cat] !== undefined ? currentMonthBudgets[cat] : (appState.rawData.budgets[cat] || 0);
     const remaining = budget - amount;
     totalBudget += budget;
 
@@ -216,7 +214,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
       <div class="cat-footer">
         <div class="input-with-yen">
           <span>予算 ¥</span>
-          <input type="number" class="form-control monthly-budget-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:90px; padding:0.2rem 0.4rem; font-size:0.85rem;">
+          <input type="number" class="form-control monthly-budget-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:90px; text-align:right; font-weight:600; padding:0.2rem 0.4rem;">
         </div>
         <span class="remaining-val">残り ¥${remaining.toLocaleString()}</span>
       </div>
@@ -224,7 +222,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
     grid.appendChild(card);
   });
 
-  // 当月予算変更イベント
+  // 当月予算入力変更イベント
   document.querySelectorAll(".monthly-budget-input").forEach(input => {
     input.addEventListener("change", (e) => {
       const cat = e.target.dataset.cat;
@@ -239,7 +237,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
       renderApp();
 
       sendPostDataBackground({
-        action: "saveMonthlyBudgetRecord",
+        action: "saveMonthlyBudget",
         payload: {
           yearMonth: prefixYearMonth,
           category: cat,
@@ -472,6 +470,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
+// カテゴリー管理一覧の描画（「支出カテゴリー」デフォルト予算設定）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -490,7 +489,7 @@ function renderCategoryManageList() {
       <div class="row-right">
         <button class="arrow-btn btn-move-up" data-type="支出" data-index="${i}">▲</button>
         <button class="arrow-btn btn-move-down" data-type="支出" data-index="${i}">▼</button>
-        <span style="font-size:0.85rem; color:var(--text-muted);">標準予算</span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">デフォルト予算</span>
         <div class="input-with-yen">
           <span>¥</span>
           <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:100px;">
