@@ -177,7 +177,6 @@ function renderApp() {
 
   const totalExp = mExpenses.reduce((s, item) => s + item.amount, 0);
   
-  // 個人支出が空欄（＝家計共通の支出）のみを合計
   const commonExp = mExpenses
     .filter(e => !e.member || e.member.trim() === "")
     .reduce((s, item) => s + item.amount, 0);
@@ -187,7 +186,6 @@ function renderApp() {
   document.getElementById("sum-income").innerText = `¥${totalInc.toLocaleString()}`;
   document.getElementById("sum-expense").innerText = `¥${totalExp.toLocaleString()}`;
   
-  // 「うち家計（個人支出を除く）」額を表示
   const commonEl = document.getElementById("sum-expense-common");
   if (commonEl) {
     commonEl.innerText = `（うち家計: ¥${commonExp.toLocaleString()}）`;
@@ -279,6 +277,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
+// 【上書き更新対応】当月固定費のレンダリングおよび保存イベント
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
@@ -322,6 +321,7 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
       const val = Number(e.target.value) || 0;
       const date = `${prefixYearMonth}-01`;
 
+      // 既存レコードがあればローカルの配列内で上書き、無ければ追加
       let existingRecord = appState.rawData.expenses.find(exp => exp.date && exp.date.startsWith(prefixYearMonth) && exp.category === cat);
 
       if (existingRecord) {
@@ -338,11 +338,13 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
           member: ""
         };
         appState.rawData.expenses.unshift(newRecord);
+        existingRecord = newRecord;
       }
 
       saveLocalCache();
       renderApp();
 
+      // GASへ上書き/保存リクエストを送信
       sendPostDataBackground({
         action: "saveFixedExpenseRecord",
         payload: {
@@ -350,6 +352,12 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
           category: cat,
           amount: val,
           memo: "固定費"
+        }
+      }, (result) => {
+        if (result.newRowIndex && existingRecord) {
+          existingRecord.rowIndex = result.newRowIndex;
+          existingRecord.id = `支出_${result.newRowIndex}`;
+          saveLocalCache();
         }
       });
     });
