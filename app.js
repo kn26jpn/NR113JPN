@@ -159,15 +159,16 @@ function renderApp() {
   document.getElementById("sum-expense").innerText = `¥${totalExp.toLocaleString()}`;
   document.getElementById("sum-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
 
-  renderFixedExpensesGrid(prefix, mExpenses);
   renderDashboardGrid(mExpenses);
-  renderMemberIncome(mIncomes);
   renderMemberExpense(mExpenses);
+  renderFixedExpensesGrid(prefix, mExpenses);
+  renderMemberIncome(mIncomes);
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
   renderCategoryManageList();
 }
 
+// 当月の固定費グリッド描画（入力欄の左に「¥」を表示・ステータスラベル廃止）
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
@@ -193,11 +194,13 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
           <span class="cat-dot" style="background:${escapeHTML(color)}"></span>
           <span>${escapeHTML(item.name)}</span>
         </div>
-        <input type="number" class="form-control fixed-amount-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" style="width:110px; text-align:right; font-weight:700;">
+        <div class="input-with-yen">
+          <span>¥</span>
+          <input type="number" class="form-control fixed-amount-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" style="width:100px; text-align:right; font-weight:700;">
+        </div>
       </div>
       <div class="cat-footer">
         <span>標準: ¥${item.defaultAmount.toLocaleString()}</span>
-        <span class="remaining-val">${existingRecord ? "記録済み" : "デフォルト"}</span>
       </div>
     `;
     grid.appendChild(card);
@@ -354,7 +357,6 @@ function renderExpenseList(mExpenses) {
     const row = document.createElement("div");
     row.className = "list-row";
     
-    // スプレッドシート側のカテゴリーと完全同一のものを選択表示（未入力時は空文字）
     let catOptions = `<option value="" ${!item.category ? 'selected' : ''}></option>`;
     catOptions += appState.rawData.expCategories.map(c => 
       `<option value="${escapeHTML(c)}" ${c === item.category ? 'selected' : ''}>${escapeHTML(c)}</option>`
@@ -434,6 +436,7 @@ function renderIncomeList(mIncomes) {
   });
 }
 
+// カテゴリー管理一覧の描画（「支出カテゴリー」予算入力欄の左に「¥」を表示）
 function renderCategoryManageList() {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
@@ -453,7 +456,10 @@ function renderCategoryManageList() {
         <button class="arrow-btn btn-move-up" data-type="支出" data-index="${i}">▲</button>
         <button class="arrow-btn btn-move-down" data-type="支出" data-index="${i}">▼</button>
         <span style="font-size:0.85rem; color:var(--text-muted);">予算</span>
-        <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:110px;">
+        <div class="input-with-yen">
+          <span>¥</span>
+          <input type="number" class="form-control budget-update-input" data-cat="${escapeHTML(cat)}" value="${budget}" style="width:100px;">
+        </div>
         <button class="btn-delete btn-delete-cat" data-type="支出" data-cat="${escapeHTML(cat)}">🗑</button>
       </div>
     `;
