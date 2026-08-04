@@ -194,15 +194,14 @@ function renderApp() {
   document.getElementById("sum-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
 
   renderDashboardGrid(prefix, mExpenses);
-  renderMemberExpense(mExpenses);
+  renderMemberExpense(prefix, mExpenses);
   renderFixedExpensesGrid(prefix, mExpenses);
-  renderMemberIncome(mIncomes);
+  renderMemberIncome(prefix, mIncomes);
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
   renderCategoryManageList();
 }
 
-// ダッシュボード「カテゴリー別の支出と予算」描画（タップで明細ポップアップ起動）
 function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
@@ -249,7 +248,6 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
       </div>
     `;
 
-    // カード全体クリック(タップ)で明細モーダルを表示
     card.addEventListener("click", () => {
       openCatDetailModal(cat, prefixYearMonth);
     });
@@ -284,7 +282,7 @@ function renderDashboardGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-total-budget").innerText = `¥${totalBudget.toLocaleString()}`;
 }
 
-// カテゴリーごとの当月明細モーダル表示処理（新規追加）
+// カテゴリー内明細モーダル表示
 function openCatDetailModal(categoryName, prefixYearMonth) {
   const modal = document.getElementById("modal-category-detail");
   const title = document.getElementById("cat-detail-title");
@@ -293,7 +291,6 @@ function openCatDetailModal(categoryName, prefixYearMonth) {
 
   if (!modal || !container) return;
 
-  // 当月の該当カテゴリー明細を抽出
   const matchedExpenses = appState.rawData.expenses.filter(e => {
     return e.date && e.date.startsWith(prefixYearMonth) && e.category === categoryName;
   });
@@ -316,6 +313,52 @@ function openCatDetailModal(categoryName, prefixYearMonth) {
           <div>
             <span class="row-memo">${escapeHTML(item.memo || '(内容なし)')}</span>
             ${item.member ? `<span class="row-submemo">個人支出: ${escapeHTML(item.member)}</span>` : ''}
+          </div>
+        </div>
+        <div class="row-right">
+          <span class="row-amount">¥${item.amount.toLocaleString()}</span>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  modal.classList.remove("hidden");
+}
+
+// 個人別明細モーダル表示（個人支出・個人収入共通）
+function openMemberDetailModal(memberName, type, prefixYearMonth) {
+  const modal = document.getElementById("modal-category-detail");
+  const title = document.getElementById("cat-detail-title");
+  const summary = document.getElementById("cat-detail-summary");
+  const container = document.getElementById("cat-detail-list");
+
+  if (!modal || !container) return;
+
+  const sourceData = type === "expense" ? appState.rawData.expenses : appState.rawData.incomes;
+  const matchedList = sourceData.filter(item => {
+    return item.date && item.date.startsWith(prefixYearMonth) && item.member === memberName;
+  });
+
+  const totalAmount = matchedList.reduce((s, item) => s + item.amount, 0);
+  const typeText = type === "expense" ? "個人支出" : "個人収入";
+
+  title.innerText = `${memberName} さんの${typeText}明細`;
+  summary.innerText = `${matchedList.length}件 / ¥${totalAmount.toLocaleString()}`;
+  container.innerHTML = "";
+
+  if (matchedList.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:2rem 0;">${memberName} さんの当月${typeText}明細はありません</div>`;
+  } else {
+    matchedList.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.innerHTML = `
+        <div class="row-left">
+          <span class="row-date">${item.date ? escapeHTML(item.date.substring(5)) : ''}</span>
+          <div>
+            <span class="row-memo">${escapeHTML(item.memo || '(内容なし)')}</span>
+            ${item.category ? `<span class="row-submemo">カテゴリー: ${escapeHTML(item.category)}</span>` : ''}
           </div>
         </div>
         <div class="row-right">
@@ -420,8 +463,10 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-fixed-expense").innerText = `¥${totalFixedAmount.toLocaleString()}`;
 }
 
-function renderMemberIncome(mIncomes) {
+// 人ごとの収入描画（タップで個別収入明細を表示）
+function renderMemberIncome(prefixYearMonth, mIncomes) {
   const container = document.getElementById("member-income-container");
+  if (!container) return;
   container.innerHTML = "";
 
   const memberMap = {};
@@ -435,16 +480,22 @@ function renderMemberIncome(mIncomes) {
   Object.keys(memberMap).forEach(mem => {
     const amount = memberMap[mem];
     const card = document.createElement("div");
-    card.className = "member-card";
+    card.className = "member-card clickable-card";
     card.innerHTML = `
       <span>${escapeHTML(mem)}</span>
       <strong>¥${amount.toLocaleString()}</strong>
     `;
+
+    card.addEventListener("click", () => {
+      openMemberDetailModal(mem, "income", prefixYearMonth);
+    });
+
     container.appendChild(card);
   });
 }
 
-function renderMemberExpense(mExpenses) {
+// 人ごとの個人支出描画（タップで個別支出明細を表示）
+function renderMemberExpense(prefixYearMonth, mExpenses) {
   const container = document.getElementById("member-expense-container");
   if (!container) return;
   container.innerHTML = "";
@@ -462,11 +513,16 @@ function renderMemberExpense(mExpenses) {
   Object.keys(memberMap).forEach(mem => {
     const amount = memberMap[mem];
     const card = document.createElement("div");
-    card.className = "member-card";
+    card.className = "member-card clickable-card";
     card.innerHTML = `
       <span>${escapeHTML(mem)}</span>
       <strong>¥${amount.toLocaleString()}</strong>
     `;
+
+    card.addEventListener("click", () => {
+      openMemberDetailModal(mem, "expense", prefixYearMonth);
+    });
+
     container.appendChild(card);
   });
 }
