@@ -316,7 +316,7 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
       } else {
         const newRecord = {
           id: "temp_" + Date.now(),
-          sheetName: "現金等",
+          sheetName: "支出",
           rowIndex: null,
           date: date,
           category: cat,
@@ -760,7 +760,7 @@ function handleTransactionSubmit(e) {
 
   const tempItem = {
     id: "temp_" + Date.now(),
-    sheetName: type === "expense" ? "現金等" : "収入",
+    sheetName: type === "expense" ? "支出" : "収入",
     rowIndex: null,
     date: payload.date,
     category: payload.category,
