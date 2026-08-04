@@ -66,6 +66,7 @@ body {
   align-items: center;
   gap: 0.4rem;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 .tab-btn.active {
   background: var(--primary-btn);
@@ -74,6 +75,7 @@ body {
 .tab-icon {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 /* Main Layout */
@@ -124,6 +126,7 @@ body {
 .month-display {
   font-weight: 600;
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 /* Cards & Summary */
@@ -277,6 +280,7 @@ body {
   font-size: 0.85rem;
   color: var(--text-muted);
   width: 50px;
+  flex-shrink: 0;
 }
 .row-memo {
   font-weight: 500;
@@ -313,6 +317,15 @@ body {
   padding: 0 0.2rem;
 }
 
+/* 入力欄の「¥」プレフィックス付きコンテナ */
+.input-with-yen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 /* カラーピッカー要素のスタイリング */
 .category-color-picker {
   border: none;
@@ -339,6 +352,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   font-size: 0.875rem;
+  white-space: nowrap;
 }
 .btn-primary { background: var(--primary-btn); color: white; }
 .btn-secondary { background: #f0eee9; color: var(--text-main); }
@@ -364,6 +378,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 200;
+  padding: 1rem;
 }
 .modal-card {
   background: white;
@@ -392,7 +407,67 @@ body {
 
 .hidden { display: none !important; }
 
+/* -----------------------------------------------------------------------------
+ * タブレット・スマホ対応レスポンシブデザイン（iPad・各種モバイル画面に最適化）
+ * ----------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .header-inner {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+  .brand-logo {
+    text-align: center;
+  }
+  .nav-tabs {
+    justify-content: center;
+    overflow-x: auto;
+    padding: 6px;
+  }
+  .tab-btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 768px) {
-  .category-grid, .summary-cards { grid-template-columns: 1fr; }
-  .inline-form { flex-direction: column; }
+  .main-container {
+    padding: 0 1rem;
+    margin: 1.25rem auto;
+  }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .summary-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .category-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .inline-form {
+    flex-direction: column;
+  }
+  .list-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .row-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .row-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .category-select {
+    max-width: 140px;
+  }
+  .amount-val {
+    font-size: 1.5rem;
+  }
 }
