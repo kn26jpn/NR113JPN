@@ -10,7 +10,7 @@ let appState = {
     incCategories: [],
     incColors: {},
     members: [],
-    budgets: {},
+    budgetsMaster: [],
     fixedExpensesMaster: [],
     expenses: [],
     incomes: []
@@ -55,6 +55,7 @@ function loadLocalCacheAndRender() {
       appState.rawData = JSON.parse(cached);
       if (!appState.rawData.expColors) appState.rawData.expColors = {};
       if (!appState.rawData.incColors) appState.rawData.incColors = {};
+      if (!appState.rawData.budgetsMaster) appState.rawData.budgetsMaster = [];
       if (!appState.rawData.fixedExpensesMaster) appState.rawData.fixedExpensesMaster = [];
       renderApp();
       return true;
@@ -86,6 +87,7 @@ function syncWithGAS() {
       appState.rawData = response.data;
       if (!appState.rawData.expColors) appState.rawData.expColors = {};
       if (!appState.rawData.incColors) appState.rawData.incColors = {};
+      if (!appState.rawData.budgetsMaster) appState.rawData.budgetsMaster = [];
       if (!appState.rawData.fixedExpensesMaster) appState.rawData.fixedExpensesMaster = [];
       saveLocalCache();
       renderApp();
@@ -159,16 +161,24 @@ function renderApp() {
   document.getElementById("sum-expense").innerText = `¥${totalExp.toLocaleString()}`;
   document.getElementById("sum-balance").innerText = `¥${(totalInc - totalExp).toLocaleString()}`;
 
-  renderDashboardGrid(mExpenses);
+  renderDashboardGrid(prefix, mExpenses);
   renderMemberExpense(mExpenses);
   renderFixedExpensesGrid(prefix, mExpenses);
   renderMemberIncome(mIncomes);
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
-  renderCategoryManageList();
+  renderCategoryManageList(prefix);
 }
 
-// 当月の固定費グリッド描画（入力欄の左に「¥」を表示・ステータスラベル廃止）
+// 特定の年月に適用される予算額を取得する関数
+function getEffectiveBudget(prefixYearMonth, category) {
+  const history = appState.rawData.budgetsMaster.filter(b => b.category === category && (!b.startMonth || b.startMonth <= prefixYearMonth));
+  if (history.length === 0) return 0;
+  
+  history.sort((a, b) => (a.startMonth > b.startMonth ? -1 : 1));
+  return history[0].amount;
+}
+
 function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("fixed-expense-grid");
   if (!grid) return;
@@ -248,7 +258,8 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-fixed-expense").innerText = `¥${totalFixedAmount.toLocaleString()}`;
 }
 
-function renderDashboardGrid(mExpenses) {
+// 当月の適用予算に基づいてダッシュボードグリッドを描画
+function renderDashboardGrid(prefixYearMonth, mExpenses) {
   const grid = document.getElementById("category-budget-grid");
   grid.innerHTML = "";
 
@@ -264,7 +275,7 @@ function renderDashboardGrid(mExpenses) {
 
   appState.rawData.expCategories.forEach((cat, i) => {
     const amount = expMap[cat] || 0;
-    const budget = appState.rawData.budgets[cat] || 0;
+    const budget = getEffectiveBudget(prefixYearMonth, cat);
     const remaining = budget - amount;
     totalBudget += budget;
 
@@ -436,13 +447,12 @@ function renderIncomeList(mIncomes) {
   });
 }
 
-// カテゴリー管理一覧の描画（「支出カテゴリー」予算入力欄の左に「¥」を表示）
-function renderCategoryManageList() {
+function renderCategoryManageList(prefixYearMonth) {
   const expContainer = document.getElementById("exp-category-manage-list");
   expContainer.innerHTML = "";
 
   appState.rawData.expCategories.forEach((cat, i) => {
-    const budget = appState.rawData.budgets[cat] || 0;
+    const budget = getEffectiveBudget(prefixYearMonth, cat);
     const color = appState.rawData.expColors[cat] || COLOR_PALETTE[i % COLOR_PALETTE.length];
 
     const row = document.createElement("div");
@@ -508,10 +518,10 @@ function renderCategoryManageList() {
     });
   }
 
-  attachCategoryManagementEvents();
+  attachCategoryManagementEvents(prefixYearMonth);
 }
 
-function attachCategoryManagementEvents() {
+function attachCategoryManagementEvents(prefixYearMonth) {
   document.querySelectorAll(".category-color-picker").forEach(picker => {
     picker.addEventListener("change", (e) => {
       const type = e.target.dataset.type;
@@ -542,13 +552,23 @@ function attachCategoryManagementEvents() {
       const cat = e.target.dataset.cat;
       const val = Number(e.target.value) || 0;
       
-      appState.rawData.budgets[cat] = val;
+      // 当月適用開始年月としてマスターに追加
+      appState.rawData.budgetsMaster.push({
+        category: cat,
+        amount: val,
+        startMonth: prefixYearMonth
+      });
+
       saveLocalCache();
       renderApp();
 
       sendPostDataBackground({
         action: "updateBudgets",
-        payload: appState.rawData.budgets
+        payload: {
+          category: cat,
+          amount: val,
+          startMonth: prefixYearMonth
+        }
       });
     });
   });
@@ -731,7 +751,11 @@ function handleAddCategory(e) {
     if (!appState.rawData.expCategories.includes(name)) {
       appState.rawData.expCategories.push(name);
     }
-    appState.rawData.budgets[name] = budget;
+    appState.rawData.budgetsMaster.push({
+      category: name,
+      amount: budget,
+      startMonth: currentYearMonth
+    });
   } else {
     if (!appState.rawData.incCategories.includes(name)) {
       appState.rawData.incCategories.push(name);
@@ -744,7 +768,7 @@ function handleAddCategory(e) {
 
   sendPostDataBackground({
     action: "addCategory",
-    payload: { type, name, budget }
+    payload: { type, name, budget, startMonth: currentYearMonth }
   });
 }
 
@@ -753,7 +777,7 @@ function deleteCategory(type, name) {
 
   if (type === "支出") {
     appState.rawData.expCategories = appState.rawData.expCategories.filter(c => c !== name);
-    delete appState.rawData.budgets[name];
+    appState.rawData.budgetsMaster = appState.rawData.budgetsMaster.filter(b => b.category !== name);
     delete appState.rawData.expColors[name];
   } else {
     appState.rawData.incCategories = appState.rawData.incCategories.filter(c => c !== name);
