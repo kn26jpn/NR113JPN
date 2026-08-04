@@ -37,7 +37,6 @@
 
     <!-- View 1: ダッシュボード -->
     <section id="view-dashboard" class="tab-content active">
-      <!-- 1. 今月のくらし -->
       <div class="section-header">
         <div>
           <span class="sub-title">MONTHLY OVERVIEW</span>
@@ -66,27 +65,27 @@
         </div>
       </div>
 
-      <!-- 2. カテゴリー別の支出と予算 -->
+      <!-- カテゴリー別の支出と予算 -->
       <div class="dashboard-subhead">
         <h2>カテゴリー別の支出と予算</h2>
         <span class="budget-total-text">予算合計 <strong id="sum-total-budget">¥0</strong></span>
       </div>
       <div id="category-budget-grid" class="category-grid" style="margin-bottom: 2.5rem;"></div>
 
-      <!-- 3. 人ごとの個人支出 -->
+      <!-- 人ごとの個人支出 -->
       <div class="dashboard-subhead">
         <h2>人ごとの個人支出</h2>
       </div>
       <div id="member-expense-container" class="member-income-list" style="margin-bottom: 2.5rem;"></div>
 
-      <!-- 4. 今月の固定費 -->
+      <!-- 今月の固定費 -->
       <div class="dashboard-subhead">
         <h2>今月の固定費</h2>
         <span class="budget-total-text">固定費合計 <strong id="sum-fixed-expense">¥0</strong></span>
       </div>
       <div id="fixed-expense-grid" class="category-grid" style="margin-bottom: 2.5rem;"></div>
 
-      <!-- 5. 人ごとの収入 -->
+      <!-- 人ごとの収入 -->
       <div class="dashboard-subhead">
         <h2>人ごとの収入</h2>
       </div>
@@ -158,20 +157,17 @@
             <option value="収入">収入</option>
           </select>
           <input type="text" id="new-cat-name" class="form-control" placeholder="名称" required>
-          <input type="number" id="new-cat-budget" class="form-control" placeholder="標準予算 / デフォルト額">
+          <input type="number" id="new-cat-budget" class="form-control" placeholder="デフォルト予算 / 額">
           <button type="submit" class="btn btn-primary">+ 追加</button>
         </form>
       </div>
 
-      <!-- 1. 支出カテゴリー -->
-      <h2 class="subhead-title">支出カテゴリー（標準予算設定）</h2>
+      <h2 class="subhead-title">支出カテゴリー（デフォルト予算）</h2>
       <div id="exp-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
 
-      <!-- 2. 固定費 -->
       <h2 class="subhead-title">固定費</h2>
       <div id="fixed-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
 
-      <!-- 3. 収入カテゴリー -->
       <h2 class="subhead-title">収入カテゴリー</h2>
       <div id="inc-category-manage-list" class="item-list"></div>
     </section>
