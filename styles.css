@@ -196,7 +196,8 @@ body {
   gap: 0.75rem;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-/* タップ可能カードのホバー・アクティブ演出 */
+
+/* クリック・タップ可能なカード設定 */
 .clickable-card {
   cursor: pointer;
 }
@@ -204,6 +205,7 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
+
 .cat-header {
   display: flex;
   justify-content: space-between;
@@ -260,6 +262,7 @@ body {
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 /* Lists */
