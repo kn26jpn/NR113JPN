@@ -328,7 +328,7 @@ body {
   color: var(--text-muted);
 }
 
-/* 丸型カラーピッカー要素の統一スタイリング（画像の丸ボタンに対応） */
+/* 丸型カラーピッカー要素の統一スタイリング */
 .category-color-picker,
 .fixed-color-picker {
   border: none;
@@ -393,6 +393,8 @@ body {
   padding: 2rem;
   width: 100%;
   max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 .form-group {
   margin-bottom: 1rem;
@@ -427,9 +429,10 @@ body {
     text-align: center;
   }
   .nav-tabs {
-    justify-content: center;
+    justify-content: flex-start;
     overflow-x: auto;
     padding: 6px;
+    -webkit-overflow-scrolling: touch;
   }
   .tab-btn {
     padding: 0.5rem 0.85rem;
