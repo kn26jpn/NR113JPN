@@ -463,7 +463,7 @@ function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
   document.getElementById("sum-fixed-expense").innerText = `¥${totalFixedAmount.toLocaleString()}`;
 }
 
-// 人ごとの収入描画（タップで個別収入明細を表示）
+// 人ごとの収入描画（タップイベント追加）
 function renderMemberIncome(prefixYearMonth, mIncomes) {
   const container = document.getElementById("member-income-container");
   if (!container) return;
@@ -494,7 +494,7 @@ function renderMemberIncome(prefixYearMonth, mIncomes) {
   });
 }
 
-// 人ごとの個人支出描画（タップで個別支出明細を表示）
+// 人ごとの個人支出描画（タップイベント追加）
 function renderMemberExpense(prefixYearMonth, mExpenses) {
   const container = document.getElementById("member-expense-container");
   if (!container) return;
