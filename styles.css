@@ -197,7 +197,6 @@ body {
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
-/* クリック・タップ可能なカード設定 */
 .clickable-card {
   cursor: pointer;
 }
@@ -337,7 +336,6 @@ body {
   padding: 0 0.2rem;
 }
 
-/* 入力欄の「¥」プレフィックス付きコンテナ */
 .input-with-yen {
   display: inline-flex;
   align-items: center;
@@ -347,9 +345,7 @@ body {
   color: var(--text-muted);
 }
 
-/* 丸型カラーピッカー要素のスタイリング */
-.category-color-picker,
-.fixed-color-picker {
+.category-color-picker {
   border: none;
   width: 24px;
   height: 24px;
@@ -360,12 +356,10 @@ body {
   padding: 0;
   flex-shrink: 0;
 }
-.category-color-picker::-webkit-color-swatch-wrapper,
-.fixed-color-picker::-webkit-color-swatch-wrapper {
+.category-color-picker::-webkit-color-swatch-wrapper {
   padding: 0;
 }
-.category-color-picker::-webkit-color-swatch,
-.fixed-color-picker::-webkit-color-swatch {
+.category-color-picker::-webkit-color-swatch {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
 }
@@ -433,7 +427,6 @@ body {
   margin-top: 1.5rem;
 }
 
-/* 明細詳細モーダル専用スタイル */
 .detail-modal-card {
   max-width: 520px;
   padding: 1.75rem;
