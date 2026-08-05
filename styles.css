@@ -345,7 +345,8 @@ body {
   color: var(--text-muted);
 }
 
-.category-color-picker {
+.category-color-picker,
+.fixed-color-picker {
   border: none;
   width: 24px;
   height: 24px;
@@ -356,10 +357,12 @@ body {
   padding: 0;
   flex-shrink: 0;
 }
-.category-color-picker::-webkit-color-swatch-wrapper {
+.category-color-picker::-webkit-color-swatch-wrapper,
+.fixed-color-picker::-webkit-color-swatch-wrapper {
   padding: 0;
 }
-.category-color-picker::-webkit-color-swatch {
+.category-color-picker::-webkit-color-swatch,
+.fixed-color-picker::-webkit-color-swatch {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
 }
