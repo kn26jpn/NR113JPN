@@ -27,7 +27,7 @@
         </button>
         <button class="tab-btn" data-tab="categories">
           <svg class="tab-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
-          カテゴリー・予算・固定費
+          カテゴリー・予算
         </button>
       </nav>
     </div>
@@ -78,13 +78,6 @@
         <h2>人ごとの個人支出</h2>
       </div>
       <div id="member-expense-container" class="member-income-list" style="margin-bottom: 2.5rem;"></div>
-
-      <!-- 今月の固定費 -->
-      <div class="dashboard-subhead">
-        <h2>今月の固定費</h2>
-        <span class="budget-total-text">固定費合計 <strong id="sum-fixed-expense">¥0</strong></span>
-      </div>
-      <div id="fixed-expense-grid" class="category-grid" style="margin-bottom: 2.5rem;"></div>
 
       <!-- 人ごとの収入 -->
       <div class="dashboard-subhead">
@@ -141,12 +134,12 @@
       <div id="income-list-container" class="item-list"></div>
     </section>
 
-    <!-- View 4: カテゴリー・予算・固定費管理 -->
+    <!-- View 4: カテゴリー・予算管理 -->
     <section id="view-categories" class="tab-content">
       <div class="section-header">
         <div>
           <span class="sub-title">CATEGORIES</span>
-          <h1 class="main-title">カテゴリー・予算・固定費</h1>
+          <h1 class="main-title">カテゴリー・予算</h1>
         </div>
       </div>
 
@@ -154,7 +147,6 @@
         <form id="form-add-category" class="inline-form">
           <select id="new-cat-type" class="form-control">
             <option value="支出">支出</option>
-            <option value="固定費">固定費</option>
             <option value="収入">収入</option>
           </select>
           <input type="text" id="new-cat-name" class="form-control" placeholder="名称" required>
@@ -165,9 +157,6 @@
 
       <h2 class="subhead-title">支出カテゴリー（標準予算）</h2>
       <div id="exp-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
-
-      <h2 class="subhead-title">固定費</h2>
-      <div id="fixed-category-manage-list" class="item-list" style="margin-bottom: 2.5rem;"></div>
 
       <h2 class="subhead-title">収入カテゴリー</h2>
       <div id="inc-category-manage-list" class="item-list"></div>
@@ -209,7 +198,7 @@
     </div>
   </div>
 
-  <!-- Modal: 明細一覧モーダル（カテゴリー / メンバー共通使用） -->
+  <!-- Modal: 明細一覧モーダル -->
   <div id="modal-category-detail" class="modal-overlay hidden">
     <div class="modal-card detail-modal-card">
       <div class="detail-modal-header">
