@@ -12,7 +12,6 @@ let appState = {
     members: [],
     budgets: {},
     monthlyBudgets: {},
-    fixedExpensesMaster: [],
     expenses: [],
     incomes: []
   }
@@ -77,7 +76,6 @@ function loadLocalCacheAndRender() {
       if (!appState.rawData.expColors) appState.rawData.expColors = {};
       if (!appState.rawData.incColors) appState.rawData.incColors = {};
       if (!appState.rawData.monthlyBudgets) appState.rawData.monthlyBudgets = {};
-      if (!appState.rawData.fixedExpensesMaster) appState.rawData.fixedExpensesMaster = [];
       renderApp();
       return true;
     } catch (e) {
@@ -109,7 +107,6 @@ function syncWithGAS() {
       if (!appState.rawData.expColors) appState.rawData.expColors = {};
       if (!appState.rawData.incColors) appState.rawData.incColors = {};
       if (!appState.rawData.monthlyBudgets) appState.rawData.monthlyBudgets = {};
-      if (!appState.rawData.fixedExpensesMaster) appState.rawData.fixedExpensesMaster = [];
       saveLocalCache();
       renderApp();
     }
@@ -195,7 +192,6 @@ function renderApp() {
 
   renderDashboardGrid(prefix, mExpenses);
   renderMemberExpense(prefix, mExpenses);
-  renderFixedExpensesGrid(prefix, mExpenses);
   renderMemberIncome(prefix, mIncomes);
   renderExpenseList(mExpenses);
   renderIncomeList(mIncomes);
@@ -377,93 +373,7 @@ function closeCatDetailModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-function renderFixedExpensesGrid(prefixYearMonth, mExpenses) {
-  const grid = document.getElementById("fixed-expense-grid");
-  if (!grid) return;
-  grid.innerHTML = "";
-
-  let totalFixedAmount = 0;
-  const activeMasters = appState.rawData.fixedExpensesMaster.filter(item => {
-    return !item.startMonth || item.startMonth <= prefixYearMonth;
-  });
-
-  activeMasters.forEach((item, i) => {
-    const existingRecord = mExpenses.find(e => e.category === item.name);
-    const currentAmount = existingRecord ? existingRecord.amount : item.defaultAmount;
-    totalFixedAmount += currentAmount;
-
-    const color = item.color || COLOR_PALETTE[i % COLOR_PALETTE.length];
-
-    const card = document.createElement("div");
-    card.className = "cat-card";
-    card.innerHTML = `
-      <div class="cat-header">
-        <div class="cat-title-wrap">
-          <span class="cat-dot" style="background:${escapeHTML(color)}"></span>
-          <span>${escapeHTML(item.name)}</span>
-        </div>
-        <div class="input-with-yen">
-          <span>¥</span>
-          <input type="number" class="form-control fixed-amount-input amount-step-input" data-cat="${escapeHTML(item.name)}" value="${currentAmount}" style="width:100px; text-align:right; font-weight:700;">
-        </div>
-      </div>
-      <div class="cat-footer">
-        <span>標準: ¥${item.defaultAmount.toLocaleString()}</span>
-      </div>
-    `;
-    grid.appendChild(card);
-  });
-
-  document.querySelectorAll(".fixed-amount-input").forEach(input => {
-    input.addEventListener("change", (e) => {
-      const cat = e.target.dataset.cat;
-      const val = Number(e.target.value) || 0;
-      const date = `${prefixYearMonth}-01`;
-
-      let existingRecord = appState.rawData.expenses.find(exp => exp.date && exp.date.startsWith(prefixYearMonth) && exp.category === cat);
-
-      if (existingRecord) {
-        existingRecord.amount = val;
-      } else {
-        const newRecord = {
-          id: "temp_" + Date.now(),
-          sheetName: "支出",
-          rowIndex: null,
-          date: date,
-          category: cat,
-          memo: "固定費",
-          amount: val,
-          member: ""
-        };
-        appState.rawData.expenses.unshift(newRecord);
-        existingRecord = newRecord;
-      }
-
-      saveLocalCache();
-      renderApp();
-
-      sendPostDataBackground({
-        action: "saveFixedExpenseRecord",
-        payload: {
-          date: date,
-          category: cat,
-          amount: val,
-          memo: "固定費"
-        }
-      }, (result) => {
-        if (result.newRowIndex && existingRecord) {
-          existingRecord.rowIndex = result.newRowIndex;
-          existingRecord.id = `支出_${result.newRowIndex}`;
-          saveLocalCache();
-        }
-      });
-    });
-  });
-
-  document.getElementById("sum-fixed-expense").innerText = `¥${totalFixedAmount.toLocaleString()}`;
-}
-
-// 人ごとの収入描画（タップイベント追加）
+// 人ごとの収入描画（タップで個別収入明細を表示）
 function renderMemberIncome(prefixYearMonth, mIncomes) {
   const container = document.getElementById("member-income-container");
   if (!container) return;
@@ -494,7 +404,7 @@ function renderMemberIncome(prefixYearMonth, mIncomes) {
   });
 }
 
-// 人ごとの個人支出描画（タップイベント追加）
+// 人ごとの個人支出描画（タップで個別支出明細を表示）
 function renderMemberExpense(prefixYearMonth, mExpenses) {
   const container = document.getElementById("member-expense-container");
   if (!container) return;
@@ -646,30 +556,6 @@ function renderCategoryManageList() {
     expContainer.appendChild(row);
   });
 
-  const fixedContainer = document.getElementById("fixed-category-manage-list");
-  if (fixedContainer) {
-    fixedContainer.innerHTML = "";
-    appState.rawData.fixedExpensesMaster.forEach((item, i) => {
-      const color = item.color || COLOR_PALETTE[i % COLOR_PALETTE.length];
-      const row = document.createElement("div");
-      row.className = "list-row";
-      row.innerHTML = `
-        <div class="row-left">
-          <input type="color" class="fixed-color-picker category-color-picker" data-name="${escapeHTML(item.name)}" value="${escapeHTML(color)}">
-          <span class="row-memo">${escapeHTML(item.name)}</span>
-        </div>
-        <div class="row-right">
-          <span style="font-size:0.85rem; color:var(--text-muted);">標準額</span>
-          <div class="input-with-yen">
-            <span>¥</span>
-            <input type="number" class="form-control fixed-default-amount-input amount-step-input" data-name="${escapeHTML(item.name)}" value="${item.defaultAmount}" style="width:100px;">
-          </div>
-        </div>
-      `;
-      fixedContainer.appendChild(row);
-    });
-  }
-
   const incContainer = document.getElementById("inc-category-manage-list");
   incContainer.innerHTML = "";
 
@@ -720,44 +606,6 @@ function attachCategoryManagementEvents() {
           colors: type === "支出" ? appState.rawData.expColors : appState.rawData.incColors
         }
       });
-    });
-  });
-
-  document.querySelectorAll(".fixed-color-picker").forEach(picker => {
-    picker.addEventListener("change", (e) => {
-      const name = e.target.dataset.name;
-      const newColor = e.target.value;
-
-      const item = appState.rawData.fixedExpensesMaster.find(f => f.name === name);
-      if (item) {
-        item.color = newColor;
-        saveLocalCache();
-        renderApp();
-
-        sendPostDataBackground({
-          action: "updateFixedExpenseMaster",
-          payload: { name, color: newColor }
-        });
-      }
-    });
-  });
-
-  document.querySelectorAll(".fixed-default-amount-input").forEach(input => {
-    input.addEventListener("change", (e) => {
-      const name = e.target.dataset.name;
-      const val = Number(e.target.value) || 0;
-
-      const item = appState.rawData.fixedExpensesMaster.find(f => f.name === name);
-      if (item) {
-        item.defaultAmount = val;
-        saveLocalCache();
-        renderApp();
-
-        sendPostDataBackground({
-          action: "updateFixedExpenseMaster",
-          payload: { name, amount: val }
-        });
-      }
     });
   });
 
@@ -928,28 +776,6 @@ function handleAddCategory(e) {
   const budget = Number(document.getElementById("new-cat-budget").value) || 0;
 
   if (!name) return;
-
-  const currentYearMonth = `${appState.currentDate.getFullYear()}-${String(appState.currentDate.getMonth() + 1).padStart(2, '0')}`;
-
-  if (type === "固定費") {
-    const newFixed = {
-      name: name,
-      defaultAmount: budget,
-      color: COLOR_PALETTE[appState.rawData.fixedExpensesMaster.length % COLOR_PALETTE.length],
-      startMonth: currentYearMonth
-    };
-    appState.rawData.fixedExpensesMaster.push(newFixed);
-
-    document.getElementById("form-add-category").reset();
-    saveLocalCache();
-    renderApp();
-
-    sendPostDataBackground({
-      action: "addFixedExpense",
-      payload: newFixed
-    });
-    return;
-  }
 
   if (type === "支出") {
     if (!appState.rawData.expCategories.includes(name)) {
